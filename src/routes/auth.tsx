@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState } from "react";
 import { ArrowLeft, Mail, Lock, ShieldCheck, Loader2, User, Phone, MapPin, Wrench, Car } from "lucide-react";
 import { toast } from "sonner";
+import { Turnstile } from '@marsidev/react-turnstile';
 import { supabase } from "@/config/supabase";
 import { useAuth } from "@/components/providers/AuthProvider";
 export const Route = createFileRoute("/auth")({
@@ -41,6 +42,7 @@ function AuthPage() {
   const [region, setRegion] = useState("");
   const [technicalSkill, setTechnicalSkill] = useState("");
   const [vehicleAvailable, setVehicleAvailable] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState("");
   
   const [loading, setLoading] = useState(false);
 
@@ -72,6 +74,10 @@ function AuthPage() {
       toast.error("Enter a valid email and 6+ character password");
       return;
     }
+    if (mode === "signup" && !captchaToken) {
+      toast.error("Please complete the security check");
+      return;
+    }
     setLoading(true);
     try {
       if (mode === "signup") {
@@ -84,6 +90,7 @@ function AuthPage() {
               display_name: displayName || email.split("@")[0],
               phone,
               region,
+              captcha_token: captchaToken,
             }
           });
           if (invokeErr) throw invokeErr;
@@ -107,6 +114,7 @@ function AuthPage() {
               region,
               technical_skill: technicalSkill,
               vehicle_available: vehicleAvailable,
+              captcha_token: captchaToken,
             }
           });
           if (invokeErr) throw invokeErr;
@@ -289,6 +297,15 @@ function AuthPage() {
                   className="w-full bg-transparent py-3 px-1 text-[15px] outline-none"
                 />
               </Field>
+
+              {mode === "signup" && (
+                <div className="flex justify-center py-2">
+                  <Turnstile 
+                    siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY || '1x00000000000000000000AA'} 
+                    onSuccess={(token) => setCaptchaToken(token)}
+                  />
+                </div>
+              )}
 
               <button
                 type="submit"
