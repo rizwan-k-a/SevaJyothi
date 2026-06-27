@@ -1,0 +1,45 @@
+# SevaJyothi self-hosted stack: Postgres + Supabase Studio + the web app.
+# Realtime, Storage, GoTrue (auth), and PostgREST can be added via the
+# official supabase/docker compose recipe; this file shows the minimum
+# slice needed to run the SevaJyothi app against a self-hosted database.
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: sevajyothi
+      POSTGRES_USER: sevajyothi
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+    volumes:
+      - sevajyothi_db:/var/lib/postgresql/data
+      - ./supabase/migrations:/docker-entrypoint-initdb.d:ro
+    ports: ["5432:5432"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sevajyothi -d sevajyothi"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build:
+      context: .
+      args:
+        VITE_SUPABASE_URL: ${SUPABASE_URL}
+        VITE_SUPABASE_PUBLISHABLE_KEY: ${SUPABASE_PUBLISHABLE_KEY}
+        VITE_BACKEND_PROVIDER: ${VITE_BACKEND_PROVIDER:-self-hosted}
+    restart: unless-stopped
+    environment:
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_PUBLISHABLE_KEY: ${SUPABASE_PUBLISHABLE_KEY}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-mailto:ops@sevajyothi.local}
+    depends_on:
+      db: { condition: service_healthy }
+    ports: ["8080:8080"]
+
+volumes:
+  sevajyothi_db:

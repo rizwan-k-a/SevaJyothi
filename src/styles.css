@@ -1,0 +1,386 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * SevaJyothi Design System
+ * Cinematic, government-grade reliability x premium startup feel.
+ * Tokens use oklch. Fonts loaded via <link> in src/routes/__root.tsx.
+ */
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-ring-offset-background: var(--background);
+
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-ink: var(--ink);
+  --color-glass: var(--glass);
+
+  --font-display: "Cormorant Garamond", "Times New Roman", serif;
+  --font-accent: "Allison", "Brush Script MT", cursive;
+  --font-body: "Inter", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --font-sans: "Inter", system-ui, sans-serif;
+
+  --shadow-elevation-1: 0 1px 2px oklch(0 0 0 / 0.04), 0 2px 8px oklch(0 0 0 / 0.04);
+  --shadow-elevation-2: 0 4px 16px oklch(0 0 0 / 0.06), 0 12px 32px oklch(0 0 0 / 0.06);
+  --shadow-elevation-3: 0 8px 32px oklch(0 0 0 / 0.08), 0 24px 64px oklch(0 0 0 / 0.10);
+  --shadow-glow: 0 0 0 1px oklch(0.55 0.22 264 / 0.15), 0 12px 48px oklch(0.55 0.22 264 / 0.25);
+}
+
+:root {
+  --radius: 0.875rem;
+
+  /* Base */
+  --background: oklch(0.978 0.003 247);
+  --foreground: oklch(0.18 0.04 264);
+  --ink: oklch(0.18 0.04 264);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.18 0.04 264);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.18 0.04 264);
+
+  /* Primary (deep navy government authority) */
+  --primary: oklch(0.22 0.05 265);
+  --primary-foreground: oklch(0.98 0.003 247);
+
+  /* Accent blue (#2563EB-ish) */
+  --accent: oklch(0.58 0.21 264);
+  --accent-foreground: oklch(1 0 0);
+
+  --secondary: oklch(0.96 0.008 250);
+  --secondary-foreground: oklch(0.22 0.05 265);
+  --muted: oklch(0.96 0.008 250);
+  --muted-foreground: oklch(0.55 0.04 257);
+
+  --success: oklch(0.70 0.16 162);
+  --warning: oklch(0.78 0.15 75);
+  --danger: oklch(0.62 0.23 27);
+  --destructive: oklch(0.62 0.23 27);
+  --destructive-foreground: oklch(1 0 0);
+
+  --border: oklch(0.91 0.012 255);
+  --input: oklch(0.93 0.012 255);
+  --ring: oklch(0.58 0.21 264);
+
+  --glass: oklch(1 0 0 / 0.55);
+  --glass-stroke: oklch(1 0 0 / 0.6);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  html, body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-body);
+    font-feature-settings: "ss01", "cv11";
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    /* Native vertical scroll — never trap touch on mobile. */
+    overscroll-behavior-y: auto;
+    touch-action: pan-y;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Safe-area padding for notch / home-indicator devices.
+     Applied at the root so installed PWAs never collide with OS bars. */
+  body {
+    padding-top: env(safe-area-inset-top);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  body {
+    background-image:
+      radial-gradient(1200px 600px at 80% -10%, oklch(0.58 0.21 264 / 0.10), transparent 60%),
+      radial-gradient(900px 500px at -10% 20%, oklch(0.78 0.10 200 / 0.12), transparent 55%),
+      linear-gradient(180deg, oklch(0.985 0.003 247) 0%, oklch(0.96 0.008 250) 100%);
+    min-height: 100vh;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.02;
+    color: var(--color-ink);
+  }
+
+  /* Cursor: only enable on devices with fine pointer */
+  @media (pointer: fine) {
+    html, body, * {
+      cursor: none !important;
+    }
+  }
+}
+
+@utility glass {
+  background: linear-gradient(180deg, oklch(1 0 0 / 0.72), oklch(1 0 0 / 0.42));
+  backdrop-filter: blur(24px) saturate(160%);
+  border: 1px solid oklch(1 0 0 / 0.6);
+  box-shadow:
+    inset 0 1px 0 oklch(1 0 0 / 0.6),
+    0 1px 2px oklch(0 0 0 / 0.04),
+    0 12px 40px oklch(0.22 0.05 265 / 0.08);
+}
+
+@utility glass-dark {
+  background: linear-gradient(180deg, oklch(0.22 0.05 265 / 0.85), oklch(0.18 0.04 264 / 0.7));
+  backdrop-filter: blur(24px) saturate(160%);
+  border: 1px solid oklch(1 0 0 / 0.08);
+  color: oklch(0.98 0.003 247);
+}
+
+@utility text-display {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 0.98;
+}
+
+@utility text-accent-script {
+  font-family: var(--font-accent);
+  font-weight: 400;
+  font-style: italic;
+}
+
+@utility text-mono-data {
+  font-family: var(--font-mono);
+  font-feature-settings: "tnum", "ss01";
+  letter-spacing: -0.01em;
+}
+
+@utility magnetic {
+  transition: transform 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  will-change: transform;
+}
+
+@utility ambient-glow {
+  box-shadow:
+    0 0 0 1px oklch(0.58 0.21 264 / 0.12),
+    0 10px 40px oklch(0.58 0.21 264 / 0.18),
+    0 24px 80px oklch(0.58 0.21 264 / 0.12);
+}
+
+@utility grain-bg {
+  position: relative;
+  isolation: isolate;
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.035;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.6 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  }
+}
+
+@keyframes sj-float {
+  0%, 100% { transform: translateY(0) }
+  50% { transform: translateY(-8px) }
+}
+
+@keyframes sj-pulse-ring {
+  0% { transform: scale(0.9); opacity: 0.7 }
+  100% { transform: scale(2.4); opacity: 0 }
+}
+
+@keyframes sj-grid-pan {
+  from { background-position: 0 0 }
+  to { background-position: 80px 80px }
+}
+
+@keyframes sj-dash {
+  to { stroke-dashoffset: -200; }
+}
+
+@keyframes sj-fade-up {
+  from { opacity: 0; transform: translateY(14px) }
+  to { opacity: 1; transform: translateY(0) }
+}
+
+.animate-sj-float { animation: sj-float 6s ease-in-out infinite; }
+.animate-sj-pulse-ring { animation: sj-pulse-ring 2.2s cubic-bezier(0.2,0.8,0.2,1) infinite; }
+.animate-sj-fade-up { animation: sj-fade-up 0.8s cubic-bezier(0.2,0.8,0.2,1) both; }
+
+/* ============================================================
+ * ADAPTIVE MOBILE + INSTALLED-PWA LAYER
+ * Field-grade rules for low-end Android, narrow viewports,
+ * thumb-reach ergonomics, and OS safe areas.
+ * ============================================================ */
+
+/* Safe-area helpers usable anywhere via className. */
+@utility pb-safe { padding-bottom: max(env(safe-area-inset-bottom), 1rem); }
+@utility pt-safe { padding-top: max(env(safe-area-inset-top), 0.5rem); }
+@utility mb-safe { margin-bottom: env(safe-area-inset-bottom); }
+@utility mt-safe { margin-top: env(safe-area-inset-top); }
+
+/* Fluid typography that survives 320–412px field phones. */
+@media (max-width: 480px) {
+  html { font-size: clamp(14.5px, 4.1vw, 16px); }
+  h1 { font-size: clamp(1.85rem, 7vw, 2.5rem); line-height: 1.05; }
+  h2 { font-size: clamp(1.35rem, 5.2vw, 1.75rem); }
+  body { background-image: none; background: var(--color-background); }
+}
+
+/* 48×48 minimum touch target on coarse pointers — overrides tiny
+   icon buttons baked into the desktop-first design. */
+@media (pointer: coarse) {
+  button,
+  [role="button"],
+  a[data-cursor],
+  input[type="button"],
+  input[type="submit"],
+  select {
+    min-height: 44px;
+  }
+  button[aria-label],
+  [data-touch="icon"] {
+    min-width: 44px;
+  }
+  /* shadcn icon-only Buttons need explicit hit area */
+  .size-icon, [data-slot="icon-button"] { min-height: 48px; min-width: 48px; }
+}
+
+/* Disable the custom cursor on coarse pointers (touch) — was already
+   gated, but reinforce by hiding the wrapper just in case. */
+@media (pointer: coarse) {
+  html, body, * { cursor: auto !important; }
+}
+
+/* Installed-PWA tweaks (Android/iOS standalone).
+   The navbar is hidden in standalone mode so OS chrome is the only top
+   surface; primary actions move to a thumb-reachable bottom dock. */
+@media (display-mode: standalone) {
+  body {
+    /* heavier bottom inset to clear gesture bar */
+    padding-bottom: max(env(safe-area-inset-bottom), 12px);
+  }
+  /* Pull large hero padding down — there's no browser UI eating space. */
+  .pt-32 { padding-top: 5rem; }
+  .pt-28 { padding-top: 4.5rem; }
+}
+
+/* Reduced motion + save-data: kill non-essential animation. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+html[data-savedata="1"] .animate-sj-float,
+html[data-savedata="1"] .animate-sj-pulse-ring,
+html[data-savedata="1"] [data-heavy="true"] {
+  animation: none !important;
+  filter: none !important;
+}
+
+/* Prevent iOS form zoom: inputs must be ≥16px. */
+@media (max-width: 480px) {
+  input, textarea, select { font-size: 16px; }
+}
+
+/* Horizontal-scroll guard — rural users on 320px screens. */
+/* Horizontal-scroll guard + guaranteed native vertical scroll on mobile. */
+html, body {
+  max-width: 100vw;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: auto;
+  touch-action: pan-y;
+}
+/* Hide scrollbars on mobile for cleaner field UI, keep momentum. */
+@media (pointer: coarse) {
+  html, body { scrollbar-width: none; }
+  html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
+}
+
+
+/* ---------- Operations-center map pins ---------- */
+.sj-pin-wrap { background: transparent; border: 0; }
+.sj-pin {
+  position: relative;
+  border-radius: 9999px;
+  display: grid; place-items: center;
+}
+.sj-pin-dot {
+  position: absolute; inset: 0; margin: auto;
+  width: 60%; height: 60%; border-radius: 9999px;
+  background: var(--c);
+  box-shadow: 0 0 0 2px rgba(0,0,0,.55), 0 0 12px var(--c);
+}
+.sj-pin-ring {
+  position: absolute; inset: 0; border-radius: 9999px;
+  border: 2px solid var(--c);
+  animation: sj-pin-pulse 1.8s ease-out infinite;
+}
+@keyframes sj-pin-pulse {
+  0%   { transform: scale(0.6); opacity: 0.9; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+.sj-cluster-wrap { background: transparent; border: 0; }
+.sj-cluster {
+  display: grid; place-items: center;
+  border-radius: 9999px;
+  color: #fff; font: 600 12px/1 "JetBrains Mono", ui-monospace, monospace;
+  background: radial-gradient(circle at 30% 30%, color-mix(in oklab, var(--c) 70%, white 10%), var(--c) 70%);
+  border: 2px solid rgba(255,255,255,.25);
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--c) 30%, transparent), 0 0 18px var(--c);
+}
+.leaflet-container { background: #0a0f1a !important; font-family: inherit; }
+.leaflet-tooltip {
+  background: rgba(10,15,26,.92) !important;
+  color: #e2e8f0 !important;
+  border: 1px solid rgba(148,163,184,.25) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 6px 24px rgba(0,0,0,.5) !important;
+}
+.leaflet-tooltip-top:before { border-top-color: rgba(10,15,26,.92) !important; }
+.leaflet-control-attribution {
+  background: rgba(10,15,26,.6) !important;
+  color: #94a3b8 !important;
+  font-size: 9px !important;
+}
+html[data-savedata="1"] .sj-pin-ring { animation: none; }

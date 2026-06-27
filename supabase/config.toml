@@ -1,0 +1,4 @@
+project_id = "zsuyilojjnmitdpawosq"
+
+[functions.ssr]
+verify_jwt = false
