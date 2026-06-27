@@ -5,6 +5,7 @@ import { ArrowLeft, Mail, Lock, ShieldCheck, Loader2, User, Phone, MapPin, Wrenc
 import { toast } from "sonner";
 import { supabase } from "@/config/supabase";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { citizenSignup, technicianSignup } from "@/lib/auth/signup.functions";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -76,31 +77,39 @@ function AuthPage() {
     setLoading(true);
     try {
       if (mode === "signup") {
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/citizen`,
-            data: { 
+        if (signupRole === "citizen") {
+          await citizenSignup({
+            data: {
+              email,
+              password,
               display_name: displayName || email.split("@")[0],
-              signup_role: signupRole,
-              phone: phone,
-              region: region,
+              phone,
+              region,
+            }
+          });
+          
+          toast.success("Account created", { description: "Signing you in..." });
+          
+          // Now standard login will succeed since the account was created server-side
+          const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+          if (error) throw error;
+          if (data.user) await finishSignIn(data.user.id);
+
+        } else {
+          await technicianSignup({
+            data: {
+              email,
+              password,
+              display_name: displayName || email.split("@")[0],
+              phone,
+              region,
               technical_skill: technicalSkill,
               vehicle_available: vehicleAvailable,
-            },
-          },
-        });
-        if (error) throw error;
-        
-        if (signupRole === "citizen") {
-          toast.success("Account created", { description: "You're signed in." });
-        } else {
+            }
+          });
+          
           toast.success("Application submitted", { description: "Your technician request is pending admin approval." });
-        }
-        
-        if (data.user) {
-          await finishSignIn(data.user.id);
+          // Note: technician signup doesn't log them in automatically because they are pending approval.
         }
       } else {
         const { data, error } = await supabase.auth.signInWithPassword({ email, password });
