@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState } from "react";
-import { ArrowLeft, Mail, Lock, ShieldCheck, Loader2 } from "lucide-react";
+import { ArrowLeft, Mail, Lock, ShieldCheck, Loader2, User, Phone, MapPin, Wrench, Car } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -17,48 +17,54 @@ export const Route = createFileRoute("/auth")({
 });
 
 type Mode = "signin" | "signup";
+type SignupRole = "citizen" | "technician";
 
-// Quick-login panel is gated on dev builds only. Backend seeded accounts remain
-// (credentials are documented separately) — only the convenience UI is hidden.
-const DEV_TEST_MODE = import.meta.env.DEV;
-
-const DEV_ACCOUNTS: Array<{ label: string; email: string; password: string; role: "authority" | "technician" }> = [
-  { label: "Admin",   email: "admin@sevajyothi.dev",        password: "Admin123456", role: "authority" },
-  { label: "Arjun",   email: "arjun.tech@sevajyothi.dev",   password: "Tech123456",  role: "technician" },
-  { label: "Kiran",   email: "kiran.tech@sevajyothi.dev",   password: "Tech123456",  role: "technician" },
-  { label: "Manoj",   email: "manoj.tech@sevajyothi.dev",   password: "Tech123456",  role: "technician" },
-  { label: "Darshan", email: "darshan.tech@sevajyothi.dev", password: "Tech123456",  role: "technician" },
-  { label: "Rahul",   email: "rahul.tech@sevajyothi.dev",   password: "Tech123456",  role: "technician" },
-  { label: "Praveen", email: "praveen.tech@sevajyothi.dev", password: "Tech123456",  role: "technician" },
-];
-
-async function routeForUser(userId: string): Promise<"/admin" | "/technician" | "/citizen"> {
+async function routeForUser(userId: string): Promise<"/admin" | "/technician" | "/citizen" | "pending"> {
   const { data } = await supabase.from("user_roles").select("role").eq("user_id", userId);
   const roles = (data ?? []).map((r) => r.role as string);
   if (roles.includes("authority")) return "/admin";
   if (roles.includes("technician")) return "/technician";
-  return "/citizen";
+  if (roles.includes("citizen")) return "/citizen";
+  return "pending";
 }
 
 function AuthPage() {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const [mode, setMode] = useState<Mode>("signin");
+  const [signupRole, setSignupRole] = useState<SignupRole>("citizen");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
+  
+  // Technician specific fields
+  const [phone, setPhone] = useState("");
+  const [region, setRegion] = useState("");
+  const [technicalSkill, setTechnicalSkill] = useState("");
+  const [vehicleAvailable, setVehicleAvailable] = useState(false);
+  
   const [loading, setLoading] = useState(false);
-  const [devBusy, setDevBusy] = useState<string | null>(null);
 
   useEffect(() => {
     if (!authLoading && user) {
-      routeForUser(user.id).then((to) => navigate({ to }));
+      routeForUser(user.id).then(async (to) => {
+        if (to === "pending") {
+          await supabase.auth.signOut();
+        } else {
+          navigate({ to });
+        }
+      });
     }
   }, [user, authLoading, navigate]);
 
   const finishSignIn = async (uid: string) => {
     const to = await routeForUser(uid);
-    navigate({ to });
+    if (to === "pending") {
+      toast.info("Your technician access request is pending administrator approval.");
+      await supabase.auth.signOut();
+    } else {
+      navigate({ to });
+    }
   };
 
   const submit = async (e: React.FormEvent) => {
@@ -75,21 +81,31 @@ function AuthPage() {
           password,
           options: {
             emailRedirectTo: `${window.location.origin}/citizen`,
-            data: { display_name: displayName || email.split("@")[0] },
+            data: { 
+              display_name: displayName || email.split("@")[0],
+              signup_role: signupRole,
+              phone: phone,
+              region: region,
+              technical_skill: technicalSkill,
+              vehicle_available: vehicleAvailable,
+            },
           },
         });
         if (error) throw error;
-        toast.success("Account created", { description: "You're signed in." });
+        
+        if (signupRole === "citizen") {
+          toast.success("Account created", { description: "You're signed in." });
+        } else {
+          toast.success("Application submitted", { description: "Your technician request is pending admin approval." });
+        }
+        
         if (data.user) {
           await supabase.rpc("app_log_event" as any, { _event_type: "login_success", _metadata: { method: "signup" } });
           await finishSignIn(data.user.id);
         }
       } else {
         const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) {
-          // Log failure (no session — call only succeeds for authenticated; safe to ignore failure here)
-          throw error;
-        }
+        if (error) throw error;
         if (data.user) {
           await supabase.rpc("app_log_event" as any, { _event_type: "login_success", _metadata: { method: "password" } });
           await finishSignIn(data.user.id);
@@ -104,26 +120,6 @@ function AuthPage() {
       setLoading(false);
     }
   };
-
-  const devLogin = async (acct: typeof DEV_ACCOUNTS[number]) => {
-    setDevBusy(acct.email);
-    setEmail(acct.email);
-    setPassword(acct.password);
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: acct.email,
-        password: acct.password,
-      });
-      if (error) throw error;
-      toast.success(`Signed in as ${acct.label}`);
-      if (data.user) await finishSignIn(data.user.id);
-    } catch (err: any) {
-      toast.error(err?.message ?? "Dev login failed");
-    } finally {
-      setDevBusy(null);
-    }
-  };
-
 
   return (
     <div className="relative min-h-[100svh] overflow-x-hidden overflow-y-auto">
@@ -156,20 +152,15 @@ function AuthPage() {
           </h1>
           <p className="mt-2 text-[14px] text-muted-foreground">
             {mode === "signin"
-              ? "Sign in to file reports and track resolutions."
-              : "Create your citizen account. Phone OTP arrives in a later release."}
+              ? "Sign in to access your dashboard."
+              : "Create an account to access the platform."}
           </p>
 
-          <a href="/admin?demo=true" className="mt-4 inline-flex items-center gap-1.5 rounded-full border border-accent/30 bg-accent/5 px-3 py-1 text-mono-data text-[10.5px] uppercase tracking-[0.16em] text-accent hover:bg-accent/10">
-            Judges · open demo mode →
-          </a>
-
-          <div className="mt-6" />
-
+          <div className="mt-8" />
 
           <AnimatePresence mode="wait">
             <motion.form
-              key={mode}
+              key={mode + (mode === "signup" ? signupRole : "")}
               onSubmit={submit}
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
@@ -178,9 +169,43 @@ function AuthPage() {
               className="space-y-3"
             >
               {mode === "signup" && (
-                <Field label="Name">
+                <div className="mb-6 flex overflow-hidden rounded-2xl border border-input p-1">
+                  <button
+                    type="button"
+                    onClick={() => setSignupRole("citizen")}
+                    className={`flex-1 rounded-xl py-2 text-sm font-medium transition-colors ${
+                      signupRole === "citizen" 
+                        ? "bg-emerald-500 text-white shadow-sm" 
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    Citizen
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSignupRole("technician")}
+                    className={`flex-1 rounded-xl py-2 text-sm font-medium transition-colors ${
+                      signupRole === "technician" 
+                        ? "bg-orange-500 text-white shadow-sm" 
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    Technician
+                  </button>
+                </div>
+              )}
+
+              {mode === "signup" && signupRole === "technician" && (
+                <div className="mb-4 rounded-xl border border-orange-500/30 bg-orange-500/10 p-3 text-xs text-orange-600 dark:text-orange-400">
+                  <strong>Approval Required:</strong> Technician accounts require manual review and approval by a district administrator before access is granted.
+                </div>
+              )}
+
+              {mode === "signup" && (
+                <Field label="Full Name" icon={<User className="h-4 w-4 text-muted-foreground" />}>
                   <input
                     value={displayName}
+                    required
                     onChange={(e) => setDisplayName(e.target.value)}
                     placeholder="Your name"
                     className="w-full bg-transparent py-3 px-1 text-[15px] outline-none"
@@ -198,6 +223,49 @@ function AuthPage() {
                   className="w-full bg-transparent py-3 px-1 text-[15px] outline-none"
                 />
               </Field>
+
+              {mode === "signup" && signupRole === "technician" && (
+                <>
+                  <Field label="Phone Number" icon={<Phone className="h-4 w-4 text-muted-foreground" />}>
+                    <input
+                      required
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="+91 90000 00000"
+                      className="w-full bg-transparent py-3 px-1 text-[15px] outline-none"
+                    />
+                  </Field>
+                  <Field label="Service Region" icon={<MapPin className="h-4 w-4 text-muted-foreground" />}>
+                    <input
+                      required
+                      value={region}
+                      onChange={(e) => setRegion(e.target.value)}
+                      placeholder="District or Zone"
+                      className="w-full bg-transparent py-3 px-1 text-[15px] outline-none"
+                    />
+                  </Field>
+                  <Field label="Technical Skill" icon={<Wrench className="h-4 w-4 text-muted-foreground" />}>
+                    <input
+                      required
+                      value={technicalSkill}
+                      onChange={(e) => setTechnicalSkill(e.target.value)}
+                      placeholder="e.g. Electrical, Plumbing"
+                      className="w-full bg-transparent py-3 px-1 text-[15px] outline-none"
+                    />
+                  </Field>
+                  <label className="flex items-center gap-3 rounded-2xl border border-input bg-white/70 px-4 py-3 cursor-pointer">
+                    <Car className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-[13px] font-medium text-foreground flex-1">Vehicle Available</span>
+                    <input 
+                      type="checkbox" 
+                      checked={vehicleAvailable}
+                      onChange={(e) => setVehicleAvailable(e.target.checked)}
+                      className="h-4 w-4 rounded border-gray-300 text-accent focus:ring-accent"
+                    />
+                  </label>
+                </>
+              )}
+
               <Field label="Password" icon={<Lock className="h-4 w-4 text-muted-foreground" />}>
                 <input
                   type="password"
@@ -215,10 +283,12 @@ function AuthPage() {
                 type="submit"
                 disabled={loading}
                 data-cursor="cta"
-                className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-full bg-primary py-3.5 text-[14px] font-medium text-primary-foreground transition-all hover:brightness-110 disabled:opacity-60"
+                className={`mt-2 inline-flex w-full items-center justify-center gap-2 rounded-full py-3.5 text-[14px] font-medium text-primary-foreground transition-all hover:brightness-110 disabled:opacity-60 ${
+                  mode === "signup" && signupRole === "technician" ? "bg-orange-600" : "bg-primary"
+                }`}
               >
                 {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-                {mode === "signin" ? "Sign in" : "Create account"}
+                {mode === "signin" ? "Sign in" : signupRole === "technician" ? "Submit Application" : "Create account"}
               </button>
             </motion.form>
           </AnimatePresence>
@@ -227,7 +297,10 @@ function AuthPage() {
             {mode === "signin" ? "New to SevaJyothi?" : "Already have an account?"}{" "}
             <button
               type="button"
-              onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
+              onClick={() => {
+                setMode(mode === "signin" ? "signup" : "signin");
+                setSignupRole("citizen");
+              }}
               className="font-medium text-accent hover:underline"
               data-cursor="link"
             >
@@ -235,38 +308,10 @@ function AuthPage() {
             </button>
           </div>
 
-          {DEV_TEST_MODE && (
-            <div className="mt-6 rounded-2xl border border-dashed border-accent/40 bg-accent/5 p-4">
-              <div className="mb-2 flex items-center justify-between">
-                <span className="text-mono-data text-[10.5px] uppercase tracking-[0.16em] text-accent">
-                  Dev test access
-                </span>
-                <span className="text-[10px] text-muted-foreground">one-click sign in</span>
-              </div>
-              <div className="grid grid-cols-2 gap-1.5">
-                {DEV_ACCOUNTS.map((a) => (
-                  <button
-                    key={a.email}
-                    type="button"
-                    disabled={devBusy !== null}
-                    onClick={() => devLogin(a)}
-                    data-cursor="link"
-                    className="flex items-center justify-between rounded-lg border border-border/60 bg-white/70 px-2.5 py-2 text-left text-[12px] transition hover:border-accent hover:bg-accent/10 disabled:opacity-50"
-                  >
-                    <span className="font-medium">{a.label}</span>
-                    <span className="text-[9.5px] uppercase tracking-wider text-muted-foreground">
-                      {devBusy === a.email ? "…" : a.role === "authority" ? "Admin" : "Tech"}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
           <div className="mt-8 border-t border-border/70 pt-5 text-center text-[11.5px] text-muted-foreground">
-            Roles · <span className="text-foreground">Citizen</span> · Authority · Technician
+            Roles · <span className="text-emerald-500">Citizen</span> · <span className="text-orange-500">Technician</span>
             <div className="mt-1 text-mono-data uppercase tracking-[0.14em] text-accent">
-              Citizen role assigned automatically on signup
+              Access controlled production system
             </div>
           </div>
         </motion.div>
@@ -286,4 +331,3 @@ function Field({ label, icon, children }: { label: string; icon?: React.ReactNod
     </label>
   );
 }
-
