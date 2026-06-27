@@ -93,7 +93,7 @@ function UserManagementPage() {
     if (!confirm(`Approve technician access for ${a.email}?`)) return;
     setActionId(a.id);
     try {
-      await approve({ data: { id: a.id, user_id: a.user_id } });
+      await approve({ data: { id: a.id } });
       await refresh();
     } catch (e: any) {
       setErr(e?.message ?? "Approval failed");
@@ -106,7 +106,7 @@ function UserManagementPage() {
     if (!confirm(`Reject technician application for ${a.email}?`)) return;
     setActionId(a.id);
     try {
-      await reject({ data: { id: a.id, user_id: a.user_id } });
+      await reject({ data: { id: a.id } });
       await refresh();
     } catch (e: any) {
       setErr(e?.message ?? "Rejection failed");

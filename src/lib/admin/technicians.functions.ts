@@ -18,7 +18,6 @@ export type TechnicianRow = {
 
 export type ApplicationRow = {
   id: string;
-  user_id: string;
   full_name: string;
   email: string;
   phone: string | null;
@@ -125,7 +124,7 @@ export const listTechnicianApplications = createServerFn({ method: "GET" })
   });
 
 // ---- approve application ----
-const approveInput = z.object({ id: z.string().uuid(), user_id: z.string().uuid() });
+const approveInput = z.object({ id: z.string().uuid() });
 export const approveTechnician = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => approveInput.parse(d))
@@ -133,24 +132,17 @@ export const approveTechnician = createServerFn({ method: "POST" })
     await assertAuthority(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    // Assign role
-    const { error: roleErr } = await supabaseAdmin
-      .from("user_roles")
-      .insert({ user_id: data.user_id, role: "technician" });
-    if (roleErr) throw new Error(roleErr.message);
-
-    // Update application status
-    const { error: appErr } = await supabaseAdmin
-      .from("technician_applications")
-      .update({ status: "approved" })
-      .eq("id", data.id);
+    // Call the RPC to insert the user into auth.users and mark approved
+    const { error: appErr } = await supabaseAdmin.rpc("approve_technician_application", {
+      _application_id: data.id,
+    });
     if (appErr) throw new Error(appErr.message);
 
     return { ok: true };
   });
 
 // ---- reject application ----
-const rejectInput = z.object({ id: z.string().uuid(), user_id: z.string().uuid() });
+const rejectInput = z.object({ id: z.string().uuid() });
 export const rejectTechnician = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => rejectInput.parse(d))
