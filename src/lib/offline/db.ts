@@ -1,5 +1,5 @@
 import { openDB, type IDBPDatabase } from "idb";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/config/supabase";
 
 export type ComplaintCategory =
   | "transformer"

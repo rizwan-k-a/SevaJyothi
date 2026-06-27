@@ -10,7 +10,7 @@
  * Safe to call multiple times — idempotent on the user's existing subscription.
  */
 
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/config/supabase";
 
 // Public VAPID key — safe to ship in client bundle.
 const VAPID_PUBLIC_KEY =

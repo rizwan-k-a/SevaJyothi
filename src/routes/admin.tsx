@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { Activity, Filter, MapPin, ShieldOff, Users, Flame } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/config/supabase";
 import { CATEGORY_META } from "@/lib/complaints/meta";
 import type { ComplaintCategory } from "@/lib/offline/db";
 import { DEMO_COMPLAINTS, DEMO_STATS, isDemoMode, resetDemoMode } from "@/lib/demo/fixtures";

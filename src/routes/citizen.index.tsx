@@ -5,7 +5,7 @@ import { AlertCircle, ChevronDown, CloudOff, CloudUpload, LogOut, MapPin, Plus, 
 import { getAllComplaints, type StoredComplaint } from "@/lib/offline/db";
 import { useOffline } from "@/components/providers/OfflineProvider";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/config/supabase";
 import { CATEGORY_META } from "@/lib/complaints/meta";
 import { LifecycleTimeline } from "@/components/complaints/LifecycleTimeline";
 import { lazy, Suspense } from "react";

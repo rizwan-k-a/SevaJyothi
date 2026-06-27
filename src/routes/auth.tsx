@@ -3,10 +3,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState } from "react";
 import { ArrowLeft, Mail, Lock, ShieldCheck, Loader2, User, Phone, MapPin, Wrench, Car } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/config/supabase";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { useServerFn } from "@tanstack/react-start";
-import { citizenSignup, technicianSignup } from "@/lib/auth/signup.functions";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -34,16 +32,12 @@ function AuthPage() {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   
-  const citSignup = useServerFn(citizenSignup);
-  const techSignup = useServerFn(technicianSignup);
-
   const [mode, setMode] = useState<Mode>("signin");
   const [signupRole, setSignupRole] = useState<SignupRole>("citizen");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   
-  // Technician specific fields
   const [phone, setPhone] = useState("");
   const [region, setRegion] = useState("");
   const [technicalSkill, setTechnicalSkill] = useState("");
@@ -82,51 +76,36 @@ function AuthPage() {
     setLoading(true);
     try {
       if (mode === "signup") {
-        if (signupRole === "citizen") {
-          // Bypasses legacy client-side auth validation
-          await citSignup({
-            data: {
-              email,
-              password,
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/citizen`,
+            data: { 
               display_name: displayName || email.split("@")[0],
-              phone: phone || undefined,
-            }
-          });
-          
-          toast.success("Account created", { description: "You're signed in." });
-          
-          // Now standard login to grab the session
-          const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-          if (error) throw error;
-          
-          if (data.user) {
-            await supabase.rpc("app_log_event" as any, { _event_type: "login_success", _metadata: { method: "signup" } });
-            await finishSignIn(data.user.id);
-          }
-        } else {
-          // Technician Application
-          await techSignup({
-            data: {
-              full_name: displayName || email.split("@")[0],
-              email,
-              password,
-              phone,
-              region,
+              signup_role: signupRole,
+              phone: phone,
+              region: region,
               technical_skill: technicalSkill,
               vehicle_available: vehicleAvailable,
-            }
-          });
-          
+            },
+          },
+        });
+        if (error) throw error;
+        
+        if (signupRole === "citizen") {
+          toast.success("Account created", { description: "You're signed in." });
+        } else {
           toast.success("Application submitted", { description: "Your technician request is pending admin approval." });
-          setMode("signin");
-          setEmail("");
-          setPassword("");
+        }
+        
+        if (data.user) {
+          await finishSignIn(data.user.id);
         }
       } else {
         const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         if (data.user) {
-          await supabase.rpc("app_log_event" as any, { _event_type: "login_success", _metadata: { method: "password" } });
           await finishSignIn(data.user.id);
         }
       }

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Bell, BellRing, CheckCheck } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/config/supabase";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { pushPermission, pushSupported, subscribeToPush } from "@/lib/push/client";
 
