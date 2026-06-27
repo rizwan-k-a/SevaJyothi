@@ -16,33 +16,27 @@ export type TechnicianRow = {
   resolved_jobs: number;
 };
 
-// ---- helpers ----
-function genPassword(length = 14): string {
-  const lower = "abcdefghijkmnpqrstuvwxyz";
-  const upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
-  const digits = "23456789";
-  const symbols = "!@#$%^&*";
-  const all = lower + upper + digits + symbols;
-  const bytes = new Uint8Array(length);
-  crypto.getRandomValues(bytes);
-  // Guarantee one of each class
-  const pick = (set: string, b: number) => set[b % set.length];
-  const out = [
-    pick(lower, bytes[0]),
-    pick(upper, bytes[1]),
-    pick(digits, bytes[2]),
-    pick(symbols, bytes[3]),
-  ];
-  for (let i = 4; i < length; i++) out.push(pick(all, bytes[i]));
-  // Fisher-Yates shuffle with fresh entropy
-  const shuf = new Uint8Array(out.length);
-  crypto.getRandomValues(shuf);
-  for (let i = out.length - 1; i > 0; i--) {
-    const j = shuf[i] % (i + 1);
-    [out[i], out[j]] = [out[j], out[i]];
-  }
-  return out.join("");
-}
+export type ApplicationRow = {
+  id: string;
+  user_id: string;
+  full_name: string;
+  email: string;
+  phone: string | null;
+  region: string | null;
+  technical_skill: string | null;
+  vehicle_available: boolean;
+  status: "pending" | "approved" | "rejected";
+  created_at: string;
+};
+
+export type CitizenRow = {
+  id: string;
+  email: string;
+  display_name: string | null;
+  village: string | null;
+  phone: string | null;
+  created_at: string;
+};
 
 async function assertAuthority(ctx: { supabase: any; userId: string }) {
   const { data, error } = await ctx.supabase
@@ -62,7 +56,6 @@ export const listTechnicians = createServerFn({ method: "GET" })
     await assertAuthority(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    // 1. all technician role rows
     const { data: roleRows, error: roleErr } = await supabaseAdmin
       .from("user_roles")
       .select("user_id")
@@ -71,14 +64,12 @@ export const listTechnicians = createServerFn({ method: "GET" })
     const ids = (roleRows ?? []).map((r) => r.user_id);
     if (ids.length === 0) return [] as TechnicianRow[];
 
-    // 2. profiles
     const { data: profiles } = await supabaseAdmin
       .from("profiles")
       .select("id, display_name, village, phone")
       .in("id", ids);
     const profileById = new Map((profiles ?? []).map((p) => [p.id, p]));
 
-    // 3. complaint counts
     const { data: complaints } = await supabaseAdmin
       .from("complaints")
       .select("assigned_to, status")
@@ -94,7 +85,6 @@ export const listTechnicians = createServerFn({ method: "GET" })
       }
     }
 
-    // 4. auth.users (admin API)
     const rows: TechnicianRow[] = [];
     for (const id of ids) {
       const { data: ures } = await supabaseAdmin.auth.admin.getUserById(id);
@@ -117,84 +107,104 @@ export const listTechnicians = createServerFn({ method: "GET" })
     return rows;
   });
 
-// ---- create technician ----
-const createInput = z.object({
-  email: z.string().trim().toLowerCase().email().max(255),
-  display_name: z.string().trim().min(1).max(100),
-  village: z.string().trim().max(100).optional().nullable(),
-  phone: z.string().trim().max(32).optional().nullable(),
-});
-
-export const createTechnician = createServerFn({ method: "POST" })
+// ---- list applications ----
+export const listTechnicianApplications = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => createInput.parse(d))
-  .handler(async ({ data, context }) => {
+  .handler(async ({ context }) => {
     await assertAuthority(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const password = genPassword(14);
-    const { data: created, error: createErr } =
-      await supabaseAdmin.auth.admin.createUser({
-        email: data.email,
-        password,
-        email_confirm: true,
-        user_metadata: { display_name: data.display_name },
-      });
-    if (createErr || !created.user) {
-      throw new Error(createErr?.message ?? "Failed to create technician");
-    }
-    const userId = created.user.id;
+    const { data, error } = await supabaseAdmin
+      .from("technician_applications")
+      .select("*")
+      .eq("status", "pending")
+      .order("created_at", { ascending: false });
 
-    // handle_new_user trigger has already inserted a 'citizen' role. Replace it.
-    await supabaseAdmin
-      .from("user_roles")
-      .delete()
-      .eq("user_id", userId)
-      .eq("role", "citizen");
-    const { error: roleErr } = await supabaseAdmin
-      .from("user_roles")
-      .insert({ user_id: userId, role: "technician" });
-    if (roleErr) throw new Error(roleErr.message);
-
-    // Backfill profile village/phone
-    await supabaseAdmin
-      .from("profiles")
-      .upsert(
-        {
-          id: userId,
-          display_name: data.display_name,
-          village: data.village ?? null,
-          phone: data.phone ?? null,
-        },
-        { onConflict: "id" },
-      );
-
-    return { id: userId, email: data.email, password };
+    if (error) throw new Error(error.message);
+    return (data ?? []) as ApplicationRow[];
   });
 
-// ---- reset password ----
-const resetInput = z.object({ user_id: z.string().uuid() });
-export const resetTechnicianPassword = createServerFn({ method: "POST" })
+// ---- approve application ----
+const approveInput = z.object({ id: z.string().uuid(), user_id: z.string().uuid() });
+export const approveTechnician = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => resetInput.parse(d))
+  .inputValidator((d: unknown) => approveInput.parse(d))
   .handler(async ({ data, context }) => {
     await assertAuthority(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    // Confirm target is a technician
-    const { data: rr } = await supabaseAdmin
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", data.user_id)
-      .eq("role", "technician")
-      .maybeSingle();
-    if (!rr) throw new Error("Target user is not a technician");
 
-    const password = genPassword(14);
-    const { error } = await supabaseAdmin.auth.admin.updateUserById(data.user_id, {
-      password,
-    });
-    if (error) throw new Error(error.message);
-    return { user_id: data.user_id, password };
+    // Assign role
+    const { error: roleErr } = await supabaseAdmin
+      .from("user_roles")
+      .insert({ user_id: data.user_id, role: "technician" });
+    if (roleErr) throw new Error(roleErr.message);
+
+    // Update application status
+    const { error: appErr } = await supabaseAdmin
+      .from("technician_applications")
+      .update({ status: "approved" })
+      .eq("id", data.id);
+    if (appErr) throw new Error(appErr.message);
+
+    return { ok: true };
+  });
+
+// ---- reject application ----
+const rejectInput = z.object({ id: z.string().uuid(), user_id: z.string().uuid() });
+export const rejectTechnician = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => rejectInput.parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAuthority(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { error: appErr } = await supabaseAdmin
+      .from("technician_applications")
+      .update({ status: "rejected" })
+      .eq("id", data.id);
+    if (appErr) throw new Error(appErr.message);
+
+    // Optionally ban or delete the auth user? We just leave them stranded or they can sign up as citizen later
+    return { ok: true };
+  });
+
+// ---- list citizens ----
+export const listCitizens = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAuthority(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: roleRows, error: roleErr } = await supabaseAdmin
+      .from("user_roles")
+      .select("user_id")
+      .eq("role", "citizen");
+    if (roleErr) throw new Error(roleErr.message);
+    const ids = (roleRows ?? []).map((r) => r.user_id);
+    if (ids.length === 0) return [] as CitizenRow[];
+
+    const { data: profiles } = await supabaseAdmin
+      .from("profiles")
+      .select("id, display_name, village, phone")
+      .in("id", ids);
+    const profileById = new Map((profiles ?? []).map((p) => [p.id, p]));
+
+    const rows: CitizenRow[] = [];
+    for (const id of ids) {
+      const { data: ures } = await supabaseAdmin.auth.admin.getUserById(id);
+      const u = ures?.user;
+      const p = profileById.get(id);
+      rows.push({
+        id,
+        email: u?.email ?? "(unknown)",
+        display_name: p?.display_name ?? null,
+        village: p?.village ?? null,
+        phone: p?.phone ?? null,
+        created_at: u?.created_at ?? new Date(0).toISOString(),
+      });
+    }
+    rows.sort((a, b) => (a.email > b.email ? 1 : -1));
+    return rows;
   });
 
 // ---- toggle ban / activate ----
@@ -206,7 +216,7 @@ export const setTechnicianBan = createServerFn({ method: "POST" })
     await assertAuthority(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin.auth.admin.updateUserById(data.user_id, {
-      ban_duration: data.disable ? "876000h" : "none", // 100 years effectively disables
+      ban_duration: data.disable ? "876000h" : "none",
     } as any);
     if (error) throw new Error(error.message);
     return { ok: true };
@@ -223,16 +233,8 @@ export const deleteTechnician = createServerFn({ method: "POST" })
       throw new Error("You cannot delete your own account");
     }
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    // Confirm technician
-    const { data: rr } = await supabaseAdmin
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", data.user_id)
-      .eq("role", "technician")
-      .maybeSingle();
-    if (!rr) throw new Error("Target user is not a technician");
-
-    // Unassign any open complaints first to avoid orphan job rows under tight RLS views
+    
+    // Unassign open complaints
     await supabaseAdmin
       .from("complaints")
       .update({ assigned_to: null })
