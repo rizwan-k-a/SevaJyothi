@@ -46,7 +46,7 @@ export const Route = createFileRoute("/api/public/send-push")({
           return new Response("Missing notification_id", { status: 400 });
         }
 
-        const { supabaseAdmin } = await import("@/config/supabase.server");
+        const { supabaseAdmin } = await import("@/config/supabaseAdmin");
 
         const { data: notif, error: notifErr } = await supabaseAdmin
           .from("notifications")

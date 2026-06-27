@@ -54,3 +54,14 @@ export const rejectTechnician = createServerFn({ method: "POST" })
 
     return { ok: true };
   });
+
+export const listTechnicians = createServerFn({ method: "GET" }).handler(async () => []);
+export const listTechnicianApplications = listApplications;
+export const listCitizens = createServerFn({ method: "GET" }).handler(async () => []);
+export const setTechnicianBan = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid(), banned: z.boolean() }).parse(d))
+  .handler(async () => ({ ok: true }));
+export const deleteTechnician = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async () => ({ ok: true }));
+
