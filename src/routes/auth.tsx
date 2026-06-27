@@ -5,8 +5,6 @@ import { ArrowLeft, Mail, Lock, ShieldCheck, Loader2, User, Phone, MapPin, Wrenc
 import { toast } from "sonner";
 import { supabase } from "@/config/supabase";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { citizenSignup, technicianSignup } from "@/lib/auth/signup.functions";
-
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
@@ -78,8 +76,9 @@ function AuthPage() {
     try {
       if (mode === "signup") {
         if (signupRole === "citizen") {
-          await citizenSignup({
-            data: {
+          const { data: signupData, error: invokeErr } = await supabase.functions.invoke('signup', {
+            body: {
+              type: 'citizen',
               email,
               password,
               display_name: displayName || email.split("@")[0],
@@ -87,6 +86,8 @@ function AuthPage() {
               region,
             }
           });
+          if (invokeErr) throw invokeErr;
+          if (signupData?.error) throw new Error(signupData.error);
           
           toast.success("Account created", { description: "Signing you in..." });
           
@@ -96,8 +97,9 @@ function AuthPage() {
           if (data.user) await finishSignIn(data.user.id);
 
         } else {
-          await technicianSignup({
-            data: {
+          const { data: signupData, error: invokeErr } = await supabase.functions.invoke('signup', {
+            body: {
+              type: 'technician',
               email,
               password,
               display_name: displayName || email.split("@")[0],
@@ -107,6 +109,8 @@ function AuthPage() {
               vehicle_available: vehicleAvailable,
             }
           });
+          if (invokeErr) throw invokeErr;
+          if (signupData?.error) throw new Error(signupData.error);
           
           toast.success("Application submitted", { description: "Your technician request is pending admin approval." });
           // Note: technician signup doesn't log them in automatically because they are pending approval.

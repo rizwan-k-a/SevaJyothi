@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { useServerFn } from "@tanstack/react-start";
+import { supabase } from "@/config/supabase";
 import {
   Users,
   ShieldOff,
@@ -17,18 +17,39 @@ import {
   Car
 } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
-import {
-  listTechnicians,
-  listTechnicianApplications,
-  listCitizens,
-  approveTechnician,
-  rejectTechnician,
-  setTechnicianBan,
-  deleteTechnician,
-  type TechnicianRow,
-  type ApplicationRow,
-  type CitizenRow
-} from "@/lib/admin/technicians.functions";
+
+export type ApplicationRow = {
+  id: string;
+  full_name: string;
+  email: string;
+  phone: string | null;
+  region: string | null;
+  technical_skill: string | null;
+  vehicle_available: boolean;
+  status: "pending" | "approved" | "rejected";
+  created_at: string;
+};
+
+export type TechnicianRow = {
+  id: string;
+  email: string;
+  display_name: string | null;
+  phone: string | null;
+  village: string | null;
+  last_sign_in_at: string | null;
+  open_jobs: number;
+  resolved_jobs: number;
+  banned_until: string | null;
+};
+
+export type CitizenRow = {
+  id: string;
+  email: string;
+  display_name: string | null;
+  phone: string | null;
+  village: string | null;
+  created_at: string;
+};
 
 export const Route = createFileRoute("/admin/technicians")({
   head: () => ({ meta: [{ title: "User Management · SevaJyothi" }] }),
@@ -41,13 +62,50 @@ function UserManagementPage() {
   const navigate = useNavigate();
   const { roles, loading } = useAuth();
   
-  const listTechs = useServerFn(listTechnicians);
-  const listApps = useServerFn(listTechnicianApplications);
-  const listCits = useServerFn(listCitizens);
-  const approve = useServerFn(approveTechnician);
-  const reject = useServerFn(rejectTechnician);
-  const setBan = useServerFn(setTechnicianBan);
-  const del = useServerFn(deleteTechnician);
+  const listApps = async () => {
+    const { data, error } = await supabase.functions.invoke('admin', { body: { action: 'listApplications' } });
+    if (error) throw error;
+    if (data?.error) throw new Error(data.error);
+    return data as ApplicationRow[];
+  };
+
+  const listTechs = async () => {
+    const { data, error } = await supabase.functions.invoke('admin', { body: { action: 'listTechnicians' } });
+    if (error) throw error;
+    if (data?.error) throw new Error(data.error);
+    return data as TechnicianRow[];
+  };
+
+  const listCits = async () => {
+    const { data, error } = await supabase.functions.invoke('admin', { body: { action: 'listCitizens' } });
+    if (error) throw error;
+    if (data?.error) throw new Error(data.error);
+    return data as CitizenRow[];
+  };
+
+  const approve = async ({ data: payload }: { data: { id: string } }) => {
+    const { data, error } = await supabase.functions.invoke('admin', { body: { action: 'approveTechnician', id: payload.id } });
+    if (error) throw error;
+    if (data?.error) throw new Error(data.error);
+  };
+
+  const reject = async ({ data: payload }: { data: { id: string } }) => {
+    const { data, error } = await supabase.functions.invoke('admin', { body: { action: 'rejectTechnician', id: payload.id } });
+    if (error) throw error;
+    if (data?.error) throw new Error(data.error);
+  };
+
+  const setBan = async ({ data: payload }: { data: { user_id: string, disable: boolean } }) => {
+    const { data, error } = await supabase.functions.invoke('admin', { body: { action: 'setTechnicianBan', id: payload.user_id, banned: payload.disable } });
+    if (error) throw error;
+    if (data?.error) throw new Error(data.error);
+  };
+
+  const del = async ({ data: payload }: { data: { user_id: string } }) => {
+    const { data, error } = await supabase.functions.invoke('admin', { body: { action: 'deleteTechnician', id: payload.user_id } });
+    if (error) throw error;
+    if (data?.error) throw new Error(data.error);
+  };
 
   const [activeTab, setActiveTab] = useState<Tab>("applications");
   
