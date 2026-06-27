@@ -5,6 +5,8 @@ import { ArrowLeft, Mail, Lock, ShieldCheck, Loader2, User, Phone, MapPin, Wrenc
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { useServerFn } from "@tanstack/react-start";
+import { citizenSignup, technicianSignup } from "@/lib/auth/signup.functions";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -31,6 +33,10 @@ async function routeForUser(userId: string): Promise<"/admin" | "/technician" | 
 function AuthPage() {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
+  
+  const citSignup = useServerFn(citizenSignup);
+  const techSignup = useServerFn(technicianSignup);
+
   const [mode, setMode] = useState<Mode>("signin");
   const [signupRole, setSignupRole] = useState<SignupRole>("citizen");
   const [email, setEmail] = useState("");
@@ -76,32 +82,45 @@ function AuthPage() {
     setLoading(true);
     try {
       if (mode === "signup") {
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/citizen`,
-            data: { 
+        if (signupRole === "citizen") {
+          // Bypasses legacy client-side auth validation
+          await citSignup({
+            data: {
+              email,
+              password,
               display_name: displayName || email.split("@")[0],
-              signup_role: signupRole,
-              phone: phone,
-              region: region,
+              phone: phone || undefined,
+            }
+          });
+          
+          toast.success("Account created", { description: "You're signed in." });
+          
+          // Now standard login to grab the session
+          const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+          if (error) throw error;
+          
+          if (data.user) {
+            await supabase.rpc("app_log_event" as any, { _event_type: "login_success", _metadata: { method: "signup" } });
+            await finishSignIn(data.user.id);
+          }
+        } else {
+          // Technician Application
+          await techSignup({
+            data: {
+              full_name: displayName || email.split("@")[0],
+              email,
+              password,
+              phone,
+              region,
               technical_skill: technicalSkill,
               vehicle_available: vehicleAvailable,
-            },
-          },
-        });
-        if (error) throw error;
-        
-        if (signupRole === "citizen") {
-          toast.success("Account created", { description: "You're signed in." });
-        } else {
+            }
+          });
+          
           toast.success("Application submitted", { description: "Your technician request is pending admin approval." });
-        }
-        
-        if (data.user) {
-          await supabase.rpc("app_log_event" as any, { _event_type: "login_success", _metadata: { method: "signup" } });
-          await finishSignIn(data.user.id);
+          setMode("signin");
+          setEmail("");
+          setPassword("");
         }
       } else {
         const { data, error } = await supabase.auth.signInWithPassword({ email, password });
