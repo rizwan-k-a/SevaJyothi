@@ -5,10 +5,11 @@ This guide covers everything you need to get the SevaJyothi platform running loc
 ## System Requirements
 
 Before you begin, ensure you have the following installed on your machine:
-* **Node.js** (v18 or higher recommended)
-* **npm** (comes with Node.js) or **bun**
-* **Git** (for version control)
-* A **Supabase** account and project (for the backend)
+
+- **Node.js** (v18 or higher recommended)
+- **npm** (comes with Node.js) or **bun**
+- **Git** (for version control)
+- A **Supabase** account and project (for the backend)
 
 ---
 
@@ -31,7 +32,7 @@ npm install
 
 ## 2. Environment Variables
 
-The project requires connection details to communicate with your Supabase backend. 
+The project requires connection details to communicate with your Supabase backend.
 
 1. Create a `.env` file in the root directory.
 2. Add the following variables (you can find these in your Supabase dashboard under **Project Settings > API**):

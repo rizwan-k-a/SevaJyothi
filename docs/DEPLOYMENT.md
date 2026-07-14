@@ -23,14 +23,14 @@ into vendor SDKs directly, so swapping vendors is a build-time change.
 
 ## 2. Environment variables
 
-| Variable | Where | Purpose |
-| --- | --- | --- |
-| `VITE_SUPABASE_URL` / `VITE_SUPABASE_PUBLISHABLE_KEY` | client | browser Data API + Realtime |
-| `SUPABASE_URL` / `SUPABASE_PUBLISHABLE_KEY` | server | server fns acting as user |
-| `SUPABASE_SERVICE_ROLE_KEY` | server only | webhooks / privileged maintenance |
-| `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` | server | Web Push signing |
-| `PUSH_DISPATCH_SECRET` / `PUSH_TRIGGER_SECRET` | server | trigger → dispatcher auth |
-| `VITE_BACKEND_PROVIDER` | build | `lovable` \| `supabase` \| `self-hosted` \| `postgres` |
+| Variable                                                   | Where       | Purpose                                                |
+| ---------------------------------------------------------- | ----------- | ------------------------------------------------------ |
+| `VITE_SUPABASE_URL` / `VITE_SUPABASE_PUBLISHABLE_KEY`      | client      | browser Data API + Realtime                            |
+| `SUPABASE_URL` / `SUPABASE_PUBLISHABLE_KEY`                | server      | server fns acting as user                              |
+| `SUPABASE_SERVICE_ROLE_KEY`                                | server only | webhooks / privileged maintenance                      |
+| `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` | server      | Web Push signing                                       |
+| `PUSH_DISPATCH_SECRET` / `PUSH_TRIGGER_SECRET`             | server      | trigger → dispatcher auth                              |
+| `VITE_BACKEND_PROVIDER`                                    | build       | `lovable` \| `supabase` \| `self-hosted` \| `postgres` |
 
 ## 3. Docker / self-host (provider = `self-hosted`)
 
@@ -54,8 +54,8 @@ migrations, apply them with the Supabase CLI (`supabase db push`) or
    `admin_complaint_hotspots`), and the `private` schema for
    security-definer helpers.
 2. **Data** — dump tables you want to keep: `pg_dump --data-only
-   --table=public.complaints --table=public.profiles --table=public.user_roles
-   <src_db_url> | psql <dst_db_url>`. Auth rows (`auth.users`) move via
+--table=public.complaints --table=public.profiles --table=public.user_roles
+<src_db_url> | psql <dst_db_url>`. Auth rows (`auth.users`) move via
    the Supabase Auth Admin API (`createUser` with `email_confirm: true`)
    so password hashes regenerate cleanly.
 3. **Verify** — run `SELECT count(*) FROM public.complaints;` on both

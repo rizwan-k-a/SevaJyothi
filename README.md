@@ -18,12 +18,12 @@ Large portions of rural India, especially remote districts and villages, face pe
 
 Common issues include:
 
-* Transformer explosions causing long-term power outages
-* Water pipeline leaks reducing supply availability
-* Road degradation affecting transportation access
-* Street light outages compromising safety
-* Sewage leakages creating health risks
-* Mobile network tower failures cutting digital access entirely
+- Transformer explosions causing long-term power outages
+- Water pipeline leaks reducing supply availability
+- Road degradation affecting transportation access
+- Street light outages compromising safety
+- Sewage leakages creating health risks
+- Mobile network tower failures cutting digital access entirely
 
 The current reporting workflow is fundamentally inefficient.
 
@@ -39,13 +39,13 @@ Citizen notices issue
 
 Critical limitations of current systems:
 
-* No real-time complaint pipeline
-* No accountability chain
-* No infrastructure for low-network rural environments
-* No offline reporting capability
-* No intelligent technician routing
-* No operational analytics for recurring failures
-* No transparent citizen-to-authority communication
+- No real-time complaint pipeline
+- No accountability chain
+- No infrastructure for low-network rural environments
+- No offline reporting capability
+- No intelligent technician routing
+- No operational analytics for recurring failures
+- No transparent citizen-to-authority communication
 
 The result is infrastructure downtime, delayed repairs, and poor operational efficiency.
 
@@ -57,14 +57,14 @@ SevaJyothi introduces a distributed infrastructure management platform designed 
 
 The system enables:
 
-* Citizens to report infrastructure failures instantly
-* Complaints to persist offline when internet is unavailable
-* Automatic background synchronization once connectivity returns
-* Authorities to monitor live infrastructure incidents
-* Intelligent technician assignment based on workload and proximity
-* Real-time status propagation across all stakeholders
-* Persistent audit trails across the complaint lifecycle
-* Predictive infrastructure intelligence through failure clustering
+- Citizens to report infrastructure failures instantly
+- Complaints to persist offline when internet is unavailable
+- Automatic background synchronization once connectivity returns
+- Authorities to monitor live infrastructure incidents
+- Intelligent technician assignment based on workload and proximity
+- Real-time status propagation across all stakeholders
+- Persistent audit trails across the complaint lifecycle
+- Predictive infrastructure intelligence through failure clustering
 
 The system works even when network access is unreliable.
 
@@ -134,11 +134,11 @@ Traditional systems assume internet availability.
 
 SevaJyothi assumes:
 
-* Internet may disappear entirely
-* Technicians may work in remote zones
-* Citizens may submit complaints without network access
-* Devices may reconnect hours later
-* Data loss must never occur
+- Internet may disappear entirely
+- Technicians may work in remote zones
+- Citizens may submit complaints without network access
+- Devices may reconnect hours later
+- Data loss must never occur
 
 This led to an offline-first architecture rather than cloud-first architecture.
 
@@ -148,54 +148,54 @@ This led to an offline-first architecture rather than cloud-first architecture.
 
 ## Frontend
 
-* React
-* TypeScript
-* TailwindCSS
-* Framer Motion
-* TanStack Router
-* Progressive Web App Architecture
+- React
+- TypeScript
+- TailwindCSS
+- Framer Motion
+- TanStack Router
+- Progressive Web App Architecture
 
 ## Backend
 
-* Supabase PostgreSQL
-* Row Level Security Policies
-* Database Triggers
-* Realtime Subscriptions
-* Storage Buckets
-* RPC Functions
+- Supabase PostgreSQL
+- Row Level Security Policies
+- Database Triggers
+- Realtime Subscriptions
+- Storage Buckets
+- RPC Functions
 
 ## Offline Engine
 
-* IndexedDB
-* Service Workers
-* Background Sync API
-* Persistent Storage API
-* Exponential Retry Queue
+- IndexedDB
+- Service Workers
+- Background Sync API
+- Persistent Storage API
+- Exponential Retry Queue
 
 ## Infrastructure Layer
 
-* Adapter Pattern Backend Architecture
-* Provider-Based Database Layer
-* Storage Provider Abstraction
-* Authentication Provider Layer
-* Realtime Provider Layer
+- Adapter Pattern Backend Architecture
+- Provider-Based Database Layer
+- Storage Provider Abstraction
+- Authentication Provider Layer
+- Realtime Provider Layer
 
 ## Geospatial Layer
 
-* Leaflet Maps
-* OpenStreetMap Tiles
-* Route Optimization Logic
-* Technician Distance Calculation
-* GPS Accuracy Validation
+- Leaflet Maps
+- OpenStreetMap Tiles
+- Route Optimization Logic
+- Technician Distance Calculation
+- GPS Accuracy Validation
 
 ## Security
 
-* Row Level Security
-* Role Isolation Policies
-* Storage Access Policies
-* Authenticated JWT Sessions
-* SQL Trigger Security Controls
-* Database Rate Limiting
+- Row Level Security
+- Role Isolation Policies
+- Storage Access Policies
+- Authenticated JWT Sessions
+- SQL Trigger Security Controls
+- Database Rate Limiting
 
 ---
 
@@ -211,13 +211,13 @@ Infrastructure reporting.
 
 Capabilities:
 
-* Submit complaint
-* Upload infrastructure images
-* Capture GPS coordinates
-* Track complaint status
-* Receive technician updates
-* Receive push notifications
-* Offline complaint submission
+- Submit complaint
+- Upload infrastructure images
+- Capture GPS coordinates
+- Track complaint status
+- Receive technician updates
+- Receive push notifications
+- Offline complaint submission
 
 ---
 
@@ -229,13 +229,13 @@ Operational command center.
 
 Capabilities:
 
-* View live complaint feed
-* Access geographic incident map
-* Assign technician resources
-* Monitor infrastructure analytics
-* View recurring infrastructure failure zones
-* Track technician utilization
-* Receive live critical alerts
+- View live complaint feed
+- Access geographic incident map
+- Assign technician resources
+- Monitor infrastructure analytics
+- View recurring infrastructure failure zones
+- Track technician utilization
+- Receive live critical alerts
 
 ---
 
@@ -247,14 +247,14 @@ Field resolution execution.
 
 Capabilities:
 
-* Receive assignment notifications
-* View assigned infrastructure faults
-* Open navigation route
-* Access live destination map
-* Start repair workflow
-* Upload proof images
-* Mark repair completion
-* Sync offline updates later
+- Receive assignment notifications
+- View assigned infrastructure faults
+- Open navigation route
+- Access live destination map
+- Start repair workflow
+- Upload proof images
+- Mark repair completion
+- Sync offline updates later
 
 ---
 
@@ -416,13 +416,13 @@ Security is enforced at database level rather than UI level.
 
 Implemented protections:
 
-* User cannot read another citizen's complaints
-* Technician cannot access unassigned infrastructure reports
-* Unauthorized role escalation blocked
-* Storage bucket protected with path-level access policies
-* Rate limiting enforced inside PostgreSQL triggers
-* Duplicate complaint replay prevented using unique client identifiers
-* Realtime subscriptions restricted by role-specific policies
+- User cannot read another citizen's complaints
+- Technician cannot access unassigned infrastructure reports
+- Unauthorized role escalation blocked
+- Storage bucket protected with path-level access policies
+- Rate limiting enforced inside PostgreSQL triggers
+- Duplicate complaint replay prevented using unique client identifiers
+- Realtime subscriptions restricted by role-specific policies
 
 No client-side security assumptions exist.
 
@@ -438,10 +438,10 @@ SevaJyothi was built around offline-first principles.
 
 Guarantees:
 
-* No data loss during connectivity failure
-* Complaint persistence survives browser restart
-* Background synchronization retries automatically
-* Field operations continue without network dependency
+- No data loss during connectivity failure
+- Complaint persistence survives browser restart
+- Background synchronization retries automatically
+- Field operations continue without network dependency
 
 The system prioritizes resilience over convenience.
 
@@ -457,12 +457,12 @@ Backend integrations operate through provider adapters.
 
 Supported future migration paths:
 
-* Supabase
-* Self-hosted PostgreSQL
-* Node.js + Express backend
-* Custom enterprise infrastructure
-* Cloudflare Workers
-* Dedicated microservice architecture
+- Supabase
+- Self-hosted PostgreSQL
+- Node.js + Express backend
+- Custom enterprise infrastructure
+- Cloudflare Workers
+- Dedicated microservice architecture
 
 This allows infrastructure ownership without vendor lock-in.
 
@@ -476,31 +476,31 @@ Current implementation status.
 
 Completed:
 
-* Production-grade authentication
-* Role-based access architecture
-* Realtime PostgreSQL subscriptions
-* Offline IndexedDB persistence
-* Background sync queue
-* Service worker infrastructure
-* Progressive Web App support
-* Push notification pipeline
-* Multi-role dashboards
-* Geospatial infrastructure reporting
-* Database triggers
-* Security policies
-* Rate limiting
-* Image compression pipeline
-* Realtime notification system
-* Technician workflow engine
-* Predictive infrastructure analytics
+- Production-grade authentication
+- Role-based access architecture
+- Realtime PostgreSQL subscriptions
+- Offline IndexedDB persistence
+- Background sync queue
+- Service worker infrastructure
+- Progressive Web App support
+- Push notification pipeline
+- Multi-role dashboards
+- Geospatial infrastructure reporting
+- Database triggers
+- Security policies
+- Rate limiting
+- Image compression pipeline
+- Realtime notification system
+- Technician workflow engine
+- Predictive infrastructure analytics
 
 In progress:
 
-* Advanced technician route optimization
-* Geographic heatmap intelligence
-* Full ownership backend migration
-* Bundle size optimization
-* Infrastructure anomaly prediction engine
+- Advanced technician route optimization
+- Geographic heatmap intelligence
+- Full ownership backend migration
+- Bundle size optimization
+- Infrastructure anomaly prediction engine
 
 ---
 
@@ -528,19 +528,19 @@ Planned engineering improvements.
 
 Phase II
 
-* AI-based infrastructure anomaly prediction
-* Infrastructure failure heatmaps
-* Technician route optimization engine
-* District-wide infrastructure analytics
-* Predictive maintenance engine
+- AI-based infrastructure anomaly prediction
+- Infrastructure failure heatmaps
+- Technician route optimization engine
+- District-wide infrastructure analytics
+- Predictive maintenance engine
 
 Phase III
 
-* IoT transformer monitoring
-* Automated anomaly detection
-* Government department integration
-* Multi-district deployment architecture
-* Centralized infrastructure intelligence dashboard
+- IoT transformer monitoring
+- Automated anomaly detection
+- Government department integration
+- Multi-district deployment architecture
+- Centralized infrastructure intelligence dashboard
 
 ---
 
