@@ -1,6 +1,6 @@
 {
-  "name": "SevaJyothi — Rural Infrastructure Intelligence",
-  "short_name": "SevaJyothi",
+  "name": "Seva Jyothi",
+  "short_name": "Seva Jyothi",
   "description": "Offline-first infrastructure fault reporting for villages operating beyond the network edge.",
   "id": "/",
   "start_url": "/?source=pwa",
@@ -20,6 +20,6 @@
   ],
   "shortcuts": [
     { "name": "Report a failure", "short_name": "Report", "url": "/citizen/report" },
-    { "name": "My dashboard",    "short_name": "Dashboard", "url": "/citizen" }
+    { "name": "My dashboard", "short_name": "Dashboard", "url": "/citizen" }
   ]
 }

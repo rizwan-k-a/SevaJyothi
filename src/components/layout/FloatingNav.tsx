@@ -1,7 +1,18 @@
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { Bell, Home, LogOut, Map, FileText, ClipboardList, BarChart3, Users, Wrench, Zap } from "lucide-react";
+import {
+  Bell,
+  Home,
+  LogOut,
+  Map,
+  FileText,
+  ClipboardList,
+  BarChart3,
+  Users,
+  Wrench,
+  Zap,
+} from "lucide-react";
 import { NotificationCenter } from "@/components/notifications/NotificationCenter";
 import { useAuth } from "@/components/providers/AuthProvider";
 
@@ -18,13 +29,11 @@ const citizenLinks: NavLink[] = [
   { to: "/citizen/report", label: "Report", icon: FileText },
 ];
 
-const technicianLinks: NavLink[] = [
-  { to: "/technician", label: "Jobs", icon: ClipboardList },
-];
+const technicianLinks: NavLink[] = [{ to: "/technician", label: "Jobs", icon: ClipboardList }];
 
 const authorityLinks: NavLink[] = [
   { to: "/admin", label: "Command Center", icon: BarChart3 },
-  { to: "/admin/technicians", label: "Technicians", icon: Users },
+  { to: "/admin/technicians", label: "Users", icon: Users },
 ];
 
 export function FloatingNav() {
@@ -40,7 +49,10 @@ export function FloatingNav() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const { links, role } = useMemo<{ links: NavLink[]; role: "authority" | "technician" | "citizen" | "public" }>(() => {
+  const { links, role } = useMemo<{
+    links: NavLink[];
+    role: "authority" | "technician" | "citizen" | "public";
+  }>(() => {
     if (!user) return { links: publicLinks, role: "public" };
     if (roles.includes("authority")) return { links: authorityLinks, role: "authority" };
     if (roles.includes("technician")) return { links: technicianLinks, role: "technician" };
@@ -65,13 +77,19 @@ export function FloatingNav() {
             scrolled ? "px-2 py-1.5 shadow-xl" : "px-2.5 py-2"
           }`}
         >
-          <Link to={role === "authority" ? "/admin" : role === "technician" ? "/technician" : "/"} className="group flex items-center gap-2 rounded-full px-2.5 py-1.5 sm:px-3">
+          <Link
+            to={role === "authority" ? "/admin" : role === "technician" ? "/technician" : "/"}
+            className="group flex items-center gap-2 rounded-full px-2.5 py-1.5 sm:px-3"
+          >
             <span className="relative grid h-8 w-8 place-items-center rounded-full bg-primary text-primary-foreground">
               <Zap className="h-3.5 w-3.5" strokeWidth={2.5} />
               <span className="absolute inset-0 rounded-full ring-1 ring-accent/40" />
             </span>
             <span className="text-display text-[17px] tracking-tight">
-              Seva<span className="text-accent-script text-accent text-[22px] -ml-0.5 relative -top-0.5">jyothi</span>
+              Seva
+              <span className="text-accent-script text-accent text-[22px] -ml-0.5 relative -top-0.5">
+                jyothi
+              </span>
             </span>
             {role !== "public" && (
               <span className="ml-1 hidden rounded-full bg-foreground/[0.06] px-2 py-0.5 text-[10px] uppercase tracking-[0.14em] text-foreground/70 sm:inline">
@@ -84,7 +102,7 @@ export function FloatingNav() {
             {links.map((l) => {
               const active = pathname === l.to || (l.to !== "/" && pathname.startsWith(l.to));
               return (
-                <li key={l.to}>
+                <li key={l.label}>
                   <Link
                     to={l.to}
                     className="relative inline-block rounded-full px-3.5 py-2 text-[13px] font-medium text-foreground/75 transition-colors hover:text-foreground"
@@ -108,7 +126,10 @@ export function FloatingNav() {
               <>
                 <NotificationCenter />
                 <button
-                  onClick={async () => { await signOut(); navigate({ to: "/" }); }}
+                  onClick={async () => {
+                    await signOut();
+                    navigate({ to: "/" });
+                  }}
                   data-cursor="button"
                   title="Sign out"
                   className="hidden min-h-9 items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-medium text-foreground/75 hover:text-foreground sm:inline-flex"
@@ -140,7 +161,7 @@ export function FloatingNav() {
               const active = pathname === t.to || (t.to !== "/" && pathname.startsWith(t.to));
               const Icon = t.icon ?? Home;
               return (
-                <li key={t.to} className="flex-1">
+                <li key={t.label} className="flex-1">
                   <Link
                     to={t.to}
                     className={`flex min-h-14 flex-col items-center justify-center gap-0.5 px-2 py-1.5 text-[10.5px] font-medium transition-colors ${
@@ -167,7 +188,7 @@ function mobileTabsForRole(role: "authority" | "technician" | "citizen" | "publi
         { to: "/admin", label: "Queue", icon: ClipboardList },
         { to: "/admin", label: "Map", icon: Map },
         { to: "/admin", label: "Analytics", icon: BarChart3 },
-        { to: "/admin/technicians", label: "Staff", icon: Users },
+        { to: "/admin/technicians", label: "Users", icon: Users },
       ];
     case "technician":
       return [

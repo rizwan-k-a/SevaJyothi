@@ -33,13 +33,15 @@ export function FeatureGrid() {
         </div>
         <h2 className="mt-3 text-display text-[clamp(2rem,4.5vw,3.4rem)]">
           A new operating layer for{" "}
-          <span className="text-accent-script text-accent text-[1.25em] leading-[0.6]">essential</span>{" "}
+          <span className="text-accent-script text-accent text-[1.25em] leading-[0.6]">
+            essential
+          </span>{" "}
           public services.
         </h2>
         <p className="mt-5 text-[16px] leading-relaxed text-muted-foreground">
-          SevaJyothi was engineered for the realities of rural India — intermittent
-          connectivity, low-end devices, high-stakes outages. Every primitive is
-          designed to keep working when the network does not.
+          SevaJyothi was engineered for the realities of rural India — intermittent connectivity,
+          low-end devices, high-stakes outages. Every primitive is designed to keep working when the
+          network does not.
         </p>
       </div>
 
@@ -60,8 +62,12 @@ export function FeatureGrid() {
             </div>
             <h3 className="text-display text-[22px]">{it.title}</h3>
             <p className="mt-2 text-[14.5px] leading-relaxed text-muted-foreground">{it.body}</p>
-            <div className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full opacity-0 blur-2xl transition-opacity duration-700 group-hover:opacity-70"
-              style={{ background: "radial-gradient(closest-side, oklch(0.58 0.21 264 / 0.35), transparent 70%)" }}
+            <div
+              className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full opacity-0 blur-2xl transition-opacity duration-700 group-hover:opacity-70"
+              style={{
+                background:
+                  "radial-gradient(closest-side, oklch(0.58 0.21 264 / 0.35), transparent 70%)",
+              }}
             />
           </motion.div>
         ))}

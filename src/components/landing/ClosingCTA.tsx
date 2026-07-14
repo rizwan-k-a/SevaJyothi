@@ -23,7 +23,10 @@ export function ClosingCTA() {
         <div className="relative">
           <h2 className="text-display text-[clamp(2rem,5vw,3.6rem)] text-white">
             Built for the{" "}
-            <span className="text-accent-script text-[1.25em] leading-[0.6]" style={{ color: "oklch(0.85 0.10 75)" }}>
+            <span
+              className="text-accent-script text-[1.25em] leading-[0.6]"
+              style={{ color: "oklch(0.85 0.10 75)" }}
+            >
               last
             </span>{" "}
             kilometre.

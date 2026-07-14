@@ -22,16 +22,19 @@ export function NotificationCenter() {
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<Notif[]>([]);
   const [loading, setLoading] = useState(false);
-  const [pushState, setPushState] = useState<"unsupported" | "default" | "granted" | "denied" | "busy">(
-    pushSupported() ? (pushPermission() as "default" | "granted" | "denied") : "unsupported"
-  );
+  const [pushState, setPushState] = useState<
+    "unsupported" | "default" | "granted" | "denied" | "busy"
+  >(pushSupported() ? (pushPermission() as "default" | "granted" | "denied") : "unsupported");
   const rootRef = useRef<HTMLDivElement>(null);
 
   const unread = items.filter((n) => !n.read_at).length;
 
   // Initial fetch + realtime subscription scoped to this user.
   useEffect(() => {
-    if (!user) { setItems([]); return; }
+    if (!user) {
+      setItems([]);
+      return;
+    }
     let cancelled = false;
 
     (async () => {
@@ -49,14 +52,26 @@ export function NotificationCenter() {
       .channel(`notif:${user.id}`)
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "notifications",
+          filter: `user_id=eq.${user.id}`,
+        },
         (payload) => setItems((prev) => [payload.new as Notif, ...prev].slice(0, PAGE_SIZE)),
       )
       .on(
         "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "notifications",
+          filter: `user_id=eq.${user.id}`,
+        },
         (payload) =>
-          setItems((prev) => prev.map((n) => (n.id === (payload.new as Notif).id ? (payload.new as Notif) : n))),
+          setItems((prev) =>
+            prev.map((n) => (n.id === (payload.new as Notif).id ? (payload.new as Notif) : n)),
+          ),
       )
       .subscribe();
 
@@ -79,12 +94,19 @@ export function NotificationCenter() {
   const markAllRead = async () => {
     if (!user || unread === 0) return;
     const ids = items.filter((n) => !n.read_at).map((n) => n.id);
-    setItems((prev) => prev.map((n) => (n.read_at ? n : { ...n, read_at: new Date().toISOString() })));
-    await supabase.from("notifications").update({ read_at: new Date().toISOString() }).in("id", ids);
+    setItems((prev) =>
+      prev.map((n) => (n.read_at ? n : { ...n, read_at: new Date().toISOString() })),
+    );
+    await supabase
+      .from("notifications")
+      .update({ read_at: new Date().toISOString() })
+      .in("id", ids);
   };
 
   const markOne = async (id: string) => {
-    setItems((prev) => prev.map((n) => (n.id === id ? { ...n, read_at: new Date().toISOString() } : n)));
+    setItems((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, read_at: new Date().toISOString() } : n)),
+    );
     await supabase.from("notifications").update({ read_at: new Date().toISOString() }).eq("id", id);
   };
 
@@ -146,7 +168,11 @@ export function NotificationCenter() {
                         setPushState("busy");
                         const r = await subscribeToPush();
                         setPushState(
-                          r.status === "subscribed" ? "granted" : r.status === "denied" ? "denied" : "unsupported",
+                          r.status === "subscribed"
+                            ? "granted"
+                            : r.status === "denied"
+                              ? "denied"
+                              : "unsupported",
                         );
                       }}
                       disabled={pushState === "busy"}
@@ -161,7 +187,9 @@ export function NotificationCenter() {
             )}
             <div className="max-h-[60vh] overflow-y-auto">
               {loading && items.length === 0 && (
-                <div className="px-4 py-8 text-center text-[12.5px] text-muted-foreground">Loading…</div>
+                <div className="px-4 py-8 text-center text-[12.5px] text-muted-foreground">
+                  Loading…
+                </div>
               )}
               {!loading && items.length === 0 && (
                 <div className="px-4 py-10 text-center text-[12.5px] text-muted-foreground">
@@ -187,7 +215,9 @@ export function NotificationCenter() {
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-[13px] font-medium">{n.title}</div>
                     {n.body && (
-                      <div className="mt-0.5 line-clamp-2 text-[12px] text-muted-foreground">{n.body}</div>
+                      <div className="mt-0.5 line-clamp-2 text-[12px] text-muted-foreground">
+                        {n.body}
+                      </div>
                     )}
                     <div className="mt-1 text-[10.5px] uppercase tracking-wider text-muted-foreground/80">
                       {relativeTime(n.created_at)}

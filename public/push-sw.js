@@ -56,6 +56,6 @@ self.addEventListener("notificationclick", (event) => {
         } catch {}
       }
       await self.clients.openWindow(targetUrl);
-    })()
+    })(),
   );
 });

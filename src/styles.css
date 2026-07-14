@@ -54,7 +54,7 @@
 
   --shadow-elevation-1: 0 1px 2px oklch(0 0 0 / 0.04), 0 2px 8px oklch(0 0 0 / 0.04);
   --shadow-elevation-2: 0 4px 16px oklch(0 0 0 / 0.06), 0 12px 32px oklch(0 0 0 / 0.06);
-  --shadow-elevation-3: 0 8px 32px oklch(0 0 0 / 0.08), 0 24px 64px oklch(0 0 0 / 0.10);
+  --shadow-elevation-3: 0 8px 32px oklch(0 0 0 / 0.08), 0 24px 64px oklch(0 0 0 / 0.1);
   --shadow-glow: 0 0 0 1px oklch(0.55 0.22 264 / 0.15), 0 12px 48px oklch(0.55 0.22 264 / 0.25);
 }
 
@@ -83,7 +83,7 @@
   --muted: oklch(0.96 0.008 250);
   --muted-foreground: oklch(0.55 0.04 257);
 
-  --success: oklch(0.70 0.16 162);
+  --success: oklch(0.7 0.16 162);
   --warning: oklch(0.78 0.15 75);
   --danger: oklch(0.62 0.23 27);
   --destructive: oklch(0.62 0.23 27);
@@ -102,7 +102,8 @@
     border-color: var(--color-border);
   }
 
-  html, body {
+  html,
+  body {
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-body);
@@ -129,13 +130,16 @@
 
   body {
     background-image:
-      radial-gradient(1200px 600px at 80% -10%, oklch(0.58 0.21 264 / 0.10), transparent 60%),
-      radial-gradient(900px 500px at -10% 20%, oklch(0.78 0.10 200 / 0.12), transparent 55%),
+      radial-gradient(1200px 600px at 80% -10%, oklch(0.58 0.21 264 / 0.1), transparent 60%),
+      radial-gradient(900px 500px at -10% 20%, oklch(0.78 0.1 200 / 0.12), transparent 55%),
       linear-gradient(180deg, oklch(0.985 0.003 247) 0%, oklch(0.96 0.008 250) 100%);
     min-height: 100vh;
   }
 
-  h1, h2, h3, h4 {
+  h1,
+  h2,
+  h3,
+  h4 {
     font-family: var(--font-display);
     font-weight: 600;
     letter-spacing: -0.02em;
@@ -143,9 +147,10 @@
     color: var(--color-ink);
   }
 
-  /* Cursor: only enable on devices with fine pointer */
+  /* Cursor: only enable on devices with fine pointer when custom cursor component is mounted */
   @media (pointer: fine) {
-    html, body, * {
+    body.custom-cursor-active,
+    body.custom-cursor-active * {
       cursor: none !important;
     }
   }
@@ -214,32 +219,61 @@
 }
 
 @keyframes sj-float {
-  0%, 100% { transform: translateY(0) }
-  50% { transform: translateY(-8px) }
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
 }
 
 @keyframes sj-pulse-ring {
-  0% { transform: scale(0.9); opacity: 0.7 }
-  100% { transform: scale(2.4); opacity: 0 }
+  0% {
+    transform: scale(0.9);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(2.4);
+    opacity: 0;
+  }
 }
 
 @keyframes sj-grid-pan {
-  from { background-position: 0 0 }
-  to { background-position: 80px 80px }
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 80px 80px;
+  }
 }
 
 @keyframes sj-dash {
-  to { stroke-dashoffset: -200; }
+  to {
+    stroke-dashoffset: -200;
+  }
 }
 
 @keyframes sj-fade-up {
-  from { opacity: 0; transform: translateY(14px) }
-  to { opacity: 1; transform: translateY(0) }
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.animate-sj-float { animation: sj-float 6s ease-in-out infinite; }
-.animate-sj-pulse-ring { animation: sj-pulse-ring 2.2s cubic-bezier(0.2,0.8,0.2,1) infinite; }
-.animate-sj-fade-up { animation: sj-fade-up 0.8s cubic-bezier(0.2,0.8,0.2,1) both; }
+.animate-sj-float {
+  animation: sj-float 6s ease-in-out infinite;
+}
+.animate-sj-pulse-ring {
+  animation: sj-pulse-ring 2.2s cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
+}
+.animate-sj-fade-up {
+  animation: sj-fade-up 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
 
 /* ============================================================
  * ADAPTIVE MOBILE + INSTALLED-PWA LAYER
@@ -248,17 +282,35 @@
  * ============================================================ */
 
 /* Safe-area helpers usable anywhere via className. */
-@utility pb-safe { padding-bottom: max(env(safe-area-inset-bottom), 1rem); }
-@utility pt-safe { padding-top: max(env(safe-area-inset-top), 0.5rem); }
-@utility mb-safe { margin-bottom: env(safe-area-inset-bottom); }
-@utility mt-safe { margin-top: env(safe-area-inset-top); }
+@utility pb-safe {
+  padding-bottom: max(env(safe-area-inset-bottom), 1rem);
+}
+@utility pt-safe {
+  padding-top: max(env(safe-area-inset-top), 0.5rem);
+}
+@utility mb-safe {
+  margin-bottom: env(safe-area-inset-bottom);
+}
+@utility mt-safe {
+  margin-top: env(safe-area-inset-top);
+}
 
 /* Fluid typography that survives 320–412px field phones. */
 @media (max-width: 480px) {
-  html { font-size: clamp(14.5px, 4.1vw, 16px); }
-  h1 { font-size: clamp(1.85rem, 7vw, 2.5rem); line-height: 1.05; }
-  h2 { font-size: clamp(1.35rem, 5.2vw, 1.75rem); }
-  body { background-image: none; background: var(--color-background); }
+  html {
+    font-size: clamp(14px, 3.9vw, 16px);
+  }
+  h1 {
+    font-size: clamp(1.65rem, 6.5vw, 2.25rem) !important;
+    line-height: 1.08 !important;
+  }
+  h2 {
+    font-size: clamp(1.2rem, 5vw, 1.6rem) !important;
+  }
+  body {
+    background-image: none;
+    background: var(--color-background);
+  }
 }
 
 /* 48×48 minimum touch target on coarse pointers — overrides tiny
@@ -277,13 +329,21 @@
     min-width: 44px;
   }
   /* shadcn icon-only Buttons need explicit hit area */
-  .size-icon, [data-slot="icon-button"] { min-height: 48px; min-width: 48px; }
+  .size-icon,
+  [data-slot="icon-button"] {
+    min-height: 48px;
+    min-width: 48px;
+  }
 }
 
 /* Disable the custom cursor on coarse pointers (touch) — was already
    gated, but reinforce by hiding the wrapper just in case. */
 @media (pointer: coarse) {
-  html, body, * { cursor: auto !important; }
+  html,
+  body,
+  * {
+    cursor: auto !important;
+  }
 }
 
 /* Installed-PWA tweaks (Android/iOS standalone).
@@ -295,13 +355,19 @@
     padding-bottom: max(env(safe-area-inset-bottom), 12px);
   }
   /* Pull large hero padding down — there's no browser UI eating space. */
-  .pt-32 { padding-top: 5rem; }
-  .pt-28 { padding-top: 4.5rem; }
+  .pt-32 {
+    padding-top: 5rem;
+  }
+  .pt-28 {
+    padding-top: 4.5rem;
+  }
 }
 
 /* Reduced motion + save-data: kill non-essential animation. */
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
+  *,
+  *::before,
+  *::after {
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
@@ -318,12 +384,20 @@ html[data-savedata="1"] [data-heavy="true"] {
 
 /* Prevent iOS form zoom: inputs must be ≥16px. */
 @media (max-width: 480px) {
-  input, textarea, select { font-size: 16px; }
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
 }
 
-/* Horizontal-scroll guard — rural users on 320px screens. */
-/* Horizontal-scroll guard + guaranteed native vertical scroll on mobile. */
-html, body {
+/* ============================================================
+ * HORIZONTAL-SCROLL GUARD + NATIVE VERTICAL SCROLL
+ * CRITICAL: Never use overflow:hidden on html/body — it kills
+ * momentum scrolling on iOS and blocks rubber-band physics.
+ * ============================================================ */
+html,
+body {
   max-width: 100vw;
   overflow-x: hidden;
   overflow-y: auto;
@@ -331,56 +405,254 @@ html, body {
   overscroll-behavior-y: auto;
   touch-action: pan-y;
 }
+
 /* Hide scrollbars on mobile for cleaner field UI, keep momentum. */
 @media (pointer: coarse) {
-  html, body { scrollbar-width: none; }
-  html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
+  html,
+  body {
+    scrollbar-width: none;
+  }
+  html::-webkit-scrollbar,
+  body::-webkit-scrollbar {
+    display: none;
+  }
 }
 
+/* ============================================================
+ * MOBILE-SPECIFIC CARD + LAYOUT COMPACTION (320px–412px)
+ * Shrinks glass card padding, stat tile numerals, and bottom
+ * clearance so content isn't hidden behind fixed nav bars.
+ * ============================================================ */
+@media (max-width: 390px) {
+  /* Tighter glass sections on narrow phones */
+  .glass {
+    padding: 0.875rem !important;
+  }
+  /* Stat numerals — smaller on 320px */
+  .text-\[32px\] {
+    font-size: 1.5rem !important;
+  }
+  /* Category grid stays 2-col but tighter gaps */
+  .grid-cols-2 {
+    gap: 0.5rem !important;
+  }
+  /* Round-3xl padding shrink */
+  .rounded-3xl.p-5 {
+    padding: 0.875rem !important;
+  }
+  .rounded-3xl.p-6 {
+    padding: 1rem !important;
+  }
+  /* Report page section padding */
+  section.glass {
+    padding: 0.875rem !important;
+  }
+}
+
+/* Ensure page shells always clear the bottom tab bar (56px) +
+   the OS gesture bar via safe-area. The fixed `sm:hidden` tab bar
+   is 56px tall. Pages must have pb ≥ 56px + safe-area on mobile. */
+@media (max-width: 639px) {
+  /* Page shell bottom clearance — enough for bottom tab bar */
+  .pb-28 {
+    padding-bottom: calc(7rem + env(safe-area-inset-bottom)) !important;
+  }
+  /* Sticky submit button bar on report page — stay above tab bar */
+  .sticky.bottom-3 {
+    bottom: calc(3.75rem + env(safe-area-inset-bottom)) !important;
+  }
+  /* Fixed citizen CTA must clear the bottom tab bar */
+  .fixed.bottom-3.inset-x-3 {
+    bottom: calc(3.75rem + env(safe-area-inset-bottom)) !important;
+  }
+  /* Ensure no horizontal overflow from wide child elements */
+  section,
+  article,
+  .glass {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+  /* Prevent framer-motion cards from causing horizontal overflow */
+  [data-cursor="card"] {
+    max-width: 100%;
+    overflow: hidden;
+  }
+}
+
+/* ============================================================
+ * BOTTOM TAB BAR CLEARANCE
+ * The tab bar is position:fixed at bottom:0. The pb-safe safe-area
+ * inset alone is not enough — must add the tab bar height too.
+ * ============================================================ */
+@media (max-width: 639px) {
+  /* Add bottom tab bar height (56px via min-h-14) to page bottom padding */
+  .pt-20.pb-28,
+  .pt-20 {
+    /* Top nav is 60px + 12px top margin; bottom tab = 56px + safe area */
+    padding-top: max(4.5rem, calc(3rem + env(safe-area-inset-top))) !important;
+  }
+}
+
+/* ============================================================
+ * FIXED-ELEMENT SCROLL TRAP PREVENTION
+ * Elements with position:fixed that aren't the nav/tab-bar must
+ * be pointer-events:none on their container so they don't absorb
+ * touch events and prevent scroll propagation.
+ * ============================================================ */
+.pointer-events-none > * {
+  /* children may still be pointer-events-auto individually */
+}
+
+/* Leaflet map: constrain touch-action so the map captures pan only
+   on its own surface, not the page scroll. */
+.leaflet-container {
+  touch-action: pan-x pan-y !important;
+}
 
 /* ---------- Operations-center map pins ---------- */
-.sj-pin-wrap { background: transparent; border: 0; }
+.sj-pin-wrap {
+  background: transparent;
+  border: 0;
+}
 .sj-pin {
   position: relative;
   border-radius: 9999px;
-  display: grid; place-items: center;
+  display: grid;
+  place-items: center;
 }
 .sj-pin-dot {
-  position: absolute; inset: 0; margin: auto;
-  width: 60%; height: 60%; border-radius: 9999px;
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 60%;
+  height: 60%;
+  border-radius: 9999px;
   background: var(--c);
-  box-shadow: 0 0 0 2px rgba(0,0,0,.55), 0 0 12px var(--c);
+  box-shadow:
+    0 0 0 2px rgba(0, 0, 0, 0.55),
+    0 0 12px var(--c);
 }
 .sj-pin-ring {
-  position: absolute; inset: 0; border-radius: 9999px;
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
   border: 2px solid var(--c);
   animation: sj-pin-pulse 1.8s ease-out infinite;
 }
 @keyframes sj-pin-pulse {
-  0%   { transform: scale(0.6); opacity: 0.9; }
-  100% { transform: scale(2.2); opacity: 0; }
+  0% {
+    transform: scale(0.6);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
 }
-.sj-cluster-wrap { background: transparent; border: 0; }
+.sj-cluster-wrap {
+  background: transparent;
+  border: 0;
+  animation: sj-cluster-breathe 3s ease-in-out infinite;
+}
+@keyframes sj-cluster-breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+}
 .sj-cluster {
-  display: grid; place-items: center;
+  position: relative;
+  display: grid;
+  place-items: center;
   border-radius: 9999px;
-  color: #fff; font: 600 12px/1 "JetBrains Mono", ui-monospace, monospace;
-  background: radial-gradient(circle at 30% 30%, color-mix(in oklab, var(--c) 70%, white 10%), var(--c) 70%);
-  border: 2px solid rgba(255,255,255,.25);
-  box-shadow: 0 0 0 4px color-mix(in oklab, var(--c) 30%, transparent), 0 0 18px var(--c);
+  color: #fff;
+  font: 600 13px/1 "Inter", system-ui, sans-serif;
+  background: linear-gradient(135deg, #3F8CFF, #1E40AF);
+  box-shadow:
+    0 8px 32px rgba(63, 140, 255, 0.4),
+    inset 0 1px 1px rgba(255, 255, 255, 0.4);
 }
-.leaflet-container { background: #0a0f1a !important; font-family: inherit; }
+.sj-cluster-ring {
+  position: absolute;
+  inset: -3px;
+  border-radius: 9999px;
+  border: 2px solid #ffffff;
+  opacity: 0.9;
+  box-shadow: 0 0 12px rgba(63, 140, 255, 0.3);
+}
+.sj-cluster-text {
+  position: relative;
+  z-index: 10;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+.leaflet-container {
+  background: #FCFDFF !important;
+  font-family: var(--font-sans), inherit;
+}
+/* Calm Tech Glassmorphism Popups */
+.leaflet-popup-content-wrapper {
+  background: rgba(255, 255, 255, 0.75) !important;
+  backdrop-filter: blur(18px) saturate(140%) !important;
+  -webkit-backdrop-filter: blur(18px) saturate(140%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.8) !important;
+  border-radius: 18px !important;
+  box-shadow: 0 12px 40px rgba(15, 23, 42, 0.08), 0 2px 8px rgba(15, 23, 42, 0.04) !important;
+  color: #0F172A !important;
+}
+.leaflet-popup-tip {
+  background: rgba(255, 255, 255, 0.75) !important;
+  backdrop-filter: blur(18px) !important;
+  box-shadow: none !important;
+}
 .leaflet-tooltip {
-  background: rgba(10,15,26,.92) !important;
-  color: #e2e8f0 !important;
-  border: 1px solid rgba(148,163,184,.25) !important;
-  border-radius: 8px !important;
-  box-shadow: 0 6px 24px rgba(0,0,0,.5) !important;
+  background: rgba(255, 255, 255, 0.85) !important;
+  backdrop-filter: blur(12px) !important;
+  color: #0F172A !important;
+  border: 1px solid rgba(255, 255, 255, 0.9) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 8px 32px rgba(15, 23, 42, 0.08) !important;
+  padding: 8px 12px !important;
 }
-.leaflet-tooltip-top:before { border-top-color: rgba(10,15,26,.92) !important; }
+.leaflet-tooltip-top:before {
+  border-top-color: rgba(255, 255, 255, 0.85) !important;
+}
+/* Calm Tech Glassmorphism Leaflet Controls */
+.leaflet-control-zoom {
+  border: none !important;
+  box-shadow: 0 8px 32px rgba(15, 23, 42, 0.08) !important;
+  border-radius: 18px !important;
+  overflow: hidden;
+}
+.leaflet-bar a {
+  background: rgba(255, 255, 255, 0.75) !important;
+  backdrop-filter: blur(18px) saturate(140%) !important;
+  color: #0F172A !important;
+  border-bottom: 1px solid rgba(200, 210, 230, 0.3) !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  width: 36px !important;
+  height: 36px !important;
+  line-height: 36px !important;
+}
+.leaflet-bar a:hover {
+  background: rgba(255, 255, 255, 0.95) !important;
+  transform: scale(1.05);
+  z-index: 10;
+}
+.leaflet-bar a:first-child {
+  border-top-left-radius: 18px !important;
+  border-top-right-radius: 18px !important;
+}
+.leaflet-bar a:last-child {
+  border-bottom-left-radius: 18px !important;
+  border-bottom-right-radius: 18px !important;
+  border-bottom: none !important;
+}
 .leaflet-control-attribution {
-  background: rgba(10,15,26,.6) !important;
-  color: #94a3b8 !important;
-  font-size: 9px !important;
+  background: rgba(255, 255, 255, 0.6) !important;
+  backdrop-filter: blur(8px) !important;
+  color: #64748B !important;
+  font-size: 10px !important;
+  border-top-left-radius: 8px !important;
+  padding: 2px 8px !important;
 }
-html[data-savedata="1"] .sj-pin-ring { animation: none; }
+html[data-savedata="1"] .sj-pin-ring {
+  animation: none;
+}

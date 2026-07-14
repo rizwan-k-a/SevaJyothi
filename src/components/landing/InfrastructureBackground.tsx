@@ -10,11 +10,15 @@ export function InfrastructureBackground() {
       {/* Ambient gradient orbs */}
       <div
         className="absolute -left-32 top-10 h-[520px] w-[520px] rounded-full opacity-60 blur-3xl"
-        style={{ background: "radial-gradient(closest-side, oklch(0.78 0.10 200 / 0.55), transparent 70%)" }}
+        style={{
+          background: "radial-gradient(closest-side, oklch(0.78 0.10 200 / 0.55), transparent 70%)",
+        }}
       />
       <div
         className="absolute -right-40 top-40 h-[600px] w-[600px] rounded-full opacity-50 blur-3xl"
-        style={{ background: "radial-gradient(closest-side, oklch(0.58 0.21 264 / 0.45), transparent 70%)" }}
+        style={{
+          background: "radial-gradient(closest-side, oklch(0.58 0.21 264 / 0.45), transparent 70%)",
+        }}
       />
 
       {/* Topographic grid */}
@@ -90,8 +94,20 @@ export function InfrastructureBackground() {
         ].map((n, i) => (
           <g key={i} transform={`translate(${n.x} ${n.y})`}>
             <circle r="14" fill={`oklch(0.58 0.21 ${n.c} / 0.18)`}>
-              <animate attributeName="r" values="6;26;6" dur="3s" begin={`${i * 0.4}s`} repeatCount="indefinite" />
-              <animate attributeName="opacity" values="0.7;0;0.7" dur="3s" begin={`${i * 0.4}s`} repeatCount="indefinite" />
+              <animate
+                attributeName="r"
+                values="6;26;6"
+                dur="3s"
+                begin={`${i * 0.4}s`}
+                repeatCount="indefinite"
+              />
+              <animate
+                attributeName="opacity"
+                values="0.7;0;0.7"
+                dur="3s"
+                begin={`${i * 0.4}s`}
+                repeatCount="indefinite"
+              />
             </circle>
             <circle r="3.5" fill={`oklch(0.58 0.21 ${n.c})`} />
           </g>
@@ -101,7 +117,10 @@ export function InfrastructureBackground() {
       {/* Soft vignette */}
       <div
         className="absolute inset-0"
-        style={{ background: "radial-gradient(ellipse at center, transparent 50%, oklch(0.978 0.003 247) 100%)" }}
+        style={{
+          background:
+            "radial-gradient(ellipse at center, transparent 50%, oklch(0.978 0.003 247) 100%)",
+        }}
       />
 
       {/* Parallax mouse layer */}

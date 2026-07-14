@@ -12,16 +12,73 @@ import { useEffect, useRef, useState } from "react";
  */
 type Variant = "default" | "button" | "link" | "card" | "cta" | "upload" | "map" | "nav" | "text";
 
-const VARIANT: Record<Variant, { scale: number; bg: string; border: string; mix: string; radius: number }> = {
-  default: { scale: 1.0,  bg: "transparent",                       border: "oklch(0.22 0.05 265 / 0.4)",  mix: "normal",     radius: 999 },
-  button:  { scale: 1.6,  bg: "oklch(0.58 0.21 264 / 0.16)",       border: "oklch(0.58 0.21 264 / 0.55)", mix: "normal",     radius: 999 },
-  link:    { scale: 1.25, bg: "oklch(0.58 0.21 264 / 0.10)",       border: "oklch(0.58 0.21 264 / 0.45)", mix: "normal",     radius: 999 },
-  card:    { scale: 1.9,  bg: "oklch(1 0 0 / 0.18)",               border: "oklch(1 0 0 / 0.5)",          mix: "difference", radius: 999 },
-  cta:     { scale: 2.1,  bg: "oklch(0.58 0.21 264 / 0.22)",       border: "oklch(0.58 0.21 264 / 0.7)",  mix: "normal",     radius: 999 },
-  upload:  { scale: 2.6,  bg: "oklch(0.70 0.16 162 / 0.18)",       border: "oklch(0.70 0.16 162 / 0.6)",  mix: "normal",     radius: 16 },
-  map:     { scale: 1.45, bg: "oklch(0.62 0.23 27 / 0.10)",        border: "oklch(0.62 0.23 27 / 0.55)",  mix: "normal",     radius: 999 },
-  nav:     { scale: 1.1,  bg: "oklch(0.22 0.05 265 / 0.08)",       border: "oklch(0.22 0.05 265 / 0.4)",  mix: "normal",     radius: 999 },
-  text:    { scale: 0.2,  bg: "oklch(0.22 0.05 265)",              border: "oklch(0.22 0.05 265)",        mix: "normal",     radius: 999 },
+const VARIANT: Record<
+  Variant,
+  { scale: number; bg: string; border: string; mix: string; radius: number }
+> = {
+  default: {
+    scale: 1.0,
+    bg: "transparent",
+    border: "oklch(0.22 0.05 265 / 0.4)",
+    mix: "normal",
+    radius: 999,
+  },
+  button: {
+    scale: 1.6,
+    bg: "oklch(0.58 0.21 264 / 0.16)",
+    border: "oklch(0.58 0.21 264 / 0.55)",
+    mix: "normal",
+    radius: 999,
+  },
+  link: {
+    scale: 1.25,
+    bg: "oklch(0.58 0.21 264 / 0.10)",
+    border: "oklch(0.58 0.21 264 / 0.45)",
+    mix: "normal",
+    radius: 999,
+  },
+  card: {
+    scale: 1.9,
+    bg: "oklch(1 0 0 / 0.18)",
+    border: "oklch(1 0 0 / 0.5)",
+    mix: "difference",
+    radius: 999,
+  },
+  cta: {
+    scale: 2.1,
+    bg: "oklch(0.58 0.21 264 / 0.22)",
+    border: "oklch(0.58 0.21 264 / 0.7)",
+    mix: "normal",
+    radius: 999,
+  },
+  upload: {
+    scale: 2.6,
+    bg: "oklch(0.70 0.16 162 / 0.18)",
+    border: "oklch(0.70 0.16 162 / 0.6)",
+    mix: "normal",
+    radius: 16,
+  },
+  map: {
+    scale: 1.45,
+    bg: "oklch(0.62 0.23 27 / 0.10)",
+    border: "oklch(0.62 0.23 27 / 0.55)",
+    mix: "normal",
+    radius: 999,
+  },
+  nav: {
+    scale: 1.1,
+    bg: "oklch(0.22 0.05 265 / 0.08)",
+    border: "oklch(0.22 0.05 265 / 0.4)",
+    mix: "normal",
+    radius: 999,
+  },
+  text: {
+    scale: 0.2,
+    bg: "oklch(0.22 0.05 265)",
+    border: "oklch(0.22 0.05 265)",
+    mix: "normal",
+    radius: 999,
+  },
 };
 
 const BASE = 28;
@@ -80,10 +137,22 @@ export function IntelligentCursor() {
       }
     };
 
-    const onDown = () => { const r = ring.current; if (r) r.style.transitionDuration = "120ms"; };
-    const onUp = () => { const r = ring.current; if (r) r.style.transitionDuration = ""; };
-    const onLeave = () => { const w = wrap.current; if (w) w.style.opacity = "0"; };
-    const onEnter = () => { const w = wrap.current; if (w) w.style.opacity = "1"; };
+    const onDown = () => {
+      const r = ring.current;
+      if (r) r.style.transitionDuration = "120ms";
+    };
+    const onUp = () => {
+      const r = ring.current;
+      if (r) r.style.transitionDuration = "";
+    };
+    const onLeave = () => {
+      const w = wrap.current;
+      if (w) w.style.opacity = "0";
+    };
+    const onEnter = () => {
+      const w = wrap.current;
+      if (w) w.style.opacity = "1";
+    };
 
     window.addEventListener("pointermove", onMove, { passive: true });
     window.addEventListener("pointerover", onOver, { passive: true });
@@ -92,6 +161,8 @@ export function IntelligentCursor() {
     document.addEventListener("mouseleave", onLeave);
     document.addEventListener("mouseenter", onEnter);
 
+    document.body.classList.add("custom-cursor-active");
+
     return () => {
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerover", onOver);
@@ -99,6 +170,7 @@ export function IntelligentCursor() {
       window.removeEventListener("pointerup", onUp);
       document.removeEventListener("mouseleave", onLeave);
       document.removeEventListener("mouseenter", onEnter);
+      document.body.classList.remove("custom-cursor-active");
     };
   }, []);
 
@@ -129,7 +201,8 @@ export function IntelligentCursor() {
           border: "1.5px solid oklch(0.22 0.05 265 / 0.4)",
           borderRadius: 999,
           transform: "translate(-50%, -50%)",
-          transition: "transform 220ms cubic-bezier(0.2,0.8,0.2,1), background 220ms, border-color 220ms, border-radius 220ms",
+          transition:
+            "transform 220ms cubic-bezier(0.2,0.8,0.2,1), background 220ms, border-color 220ms, border-radius 220ms",
           willChange: "transform",
         }}
       />

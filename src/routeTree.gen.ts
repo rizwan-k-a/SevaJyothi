@@ -16,6 +16,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as CitizenIndexRouteImport } from './routes/citizen.index'
+import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as DocsRolesRouteImport } from './routes/docs.roles'
 import { Route as DocsRealtimeRouteImport } from './routes/docs.realtime'
 import { Route as DocsPwaRouteImport } from './routes/docs.pwa'
@@ -58,6 +59,11 @@ const CitizenIndexRoute = CitizenIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => CitizenRoute,
+} as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminRoute,
 } as any)
 const DocsRolesRoute = DocsRolesRouteImport.update({
   id: '/roles',
@@ -108,12 +114,12 @@ export interface FileRoutesByFullPath {
   '/docs/pwa': typeof DocsPwaRoute
   '/docs/realtime': typeof DocsRealtimeRoute
   '/docs/roles': typeof DocsRolesRoute
+  '/admin/': typeof AdminIndexRoute
   '/citizen/': typeof CitizenIndexRoute
   '/api/public/send-push': typeof ApiPublicSendPushRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
   '/docs': typeof DocsRouteWithChildren
   '/technician': typeof TechnicianRoute
@@ -123,6 +129,7 @@ export interface FileRoutesByTo {
   '/docs/pwa': typeof DocsPwaRoute
   '/docs/realtime': typeof DocsRealtimeRoute
   '/docs/roles': typeof DocsRolesRoute
+  '/admin': typeof AdminIndexRoute
   '/citizen': typeof CitizenIndexRoute
   '/api/public/send-push': typeof ApiPublicSendPushRoute
 }
@@ -140,6 +147,7 @@ export interface FileRoutesById {
   '/docs/pwa': typeof DocsPwaRoute
   '/docs/realtime': typeof DocsRealtimeRoute
   '/docs/roles': typeof DocsRolesRoute
+  '/admin/': typeof AdminIndexRoute
   '/citizen/': typeof CitizenIndexRoute
   '/api/public/send-push': typeof ApiPublicSendPushRoute
 }
@@ -158,12 +166,12 @@ export interface FileRouteTypes {
     | '/docs/pwa'
     | '/docs/realtime'
     | '/docs/roles'
+    | '/admin/'
     | '/citizen/'
     | '/api/public/send-push'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/admin'
     | '/auth'
     | '/docs'
     | '/technician'
@@ -173,6 +181,7 @@ export interface FileRouteTypes {
     | '/docs/pwa'
     | '/docs/realtime'
     | '/docs/roles'
+    | '/admin'
     | '/citizen'
     | '/api/public/send-push'
   id:
@@ -189,6 +198,7 @@ export interface FileRouteTypes {
     | '/docs/pwa'
     | '/docs/realtime'
     | '/docs/roles'
+    | '/admin/'
     | '/citizen/'
     | '/api/public/send-push'
   fileRoutesById: FileRoutesById
@@ -254,6 +264,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CitizenIndexRouteImport
       parentRoute: typeof CitizenRoute
     }
+    '/admin/': {
+      id: '/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/docs/roles': {
       id: '/docs/roles'
       path: '/roles'
@@ -308,10 +325,12 @@ declare module '@tanstack/react-router' {
 
 interface AdminRouteChildren {
   AdminTechniciansRoute: typeof AdminTechniciansRoute
+  AdminIndexRoute: typeof AdminIndexRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminTechniciansRoute: AdminTechniciansRoute,
+  AdminIndexRoute: AdminIndexRoute,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)

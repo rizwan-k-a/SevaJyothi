@@ -12,23 +12,53 @@ type Step = {
 type Ev = { event: string; created_at: string };
 
 const STEPS: Step[] = [
-  { key: "reported",   label: "Reported",          match: (e) => e.find((x) => x.event === "reported") },
-  { key: "offline",    label: "Stored offline",    match: (e) => e.find((x) => x.event === "stored_offline") },
-  { key: "synced",     label: "Synced to cloud",   match: (e) => e.find((x) => x.event === "synced") },
-  { key: "triaged",    label: "Authority reviewed",match: (e) => e.find((x) => x.event === "status:triaged" || x.event.startsWith("priority:")) },
-  { key: "assigned",   label: "Technician assigned", match: (e) => e.find((x) => x.event.startsWith("assigned:")) },
-  { key: "started",    label: "Repair started",    match: (e) => e.find((x) => x.event === "status:en_route" || x.event === "status:on_site") },
-  { key: "resolved",   label: "Resolved",          match: (e) => e.find((x) => x.event === "resolved" || x.event === "status:resolved") },
+  { key: "reported", label: "Reported", match: (e) => e.find((x) => x.event === "reported") },
+  {
+    key: "offline",
+    label: "Stored offline",
+    match: (e) => e.find((x) => x.event === "stored_offline"),
+  },
+  { key: "synced", label: "Synced to cloud", match: (e) => e.find((x) => x.event === "synced") },
+  {
+    key: "triaged",
+    label: "Authority reviewed",
+    match: (e) => e.find((x) => x.event === "status:triaged" || x.event.startsWith("priority:")),
+  },
+  {
+    key: "assigned",
+    label: "Technician assigned",
+    match: (e) => e.find((x) => x.event.startsWith("assigned:")),
+  },
+  {
+    key: "started",
+    label: "Repair started",
+    match: (e) => e.find((x) => x.event === "status:en_route" || x.event === "status:on_site"),
+  },
+  {
+    key: "resolved",
+    label: "Resolved",
+    match: (e) => e.find((x) => x.event === "resolved" || x.event === "status:resolved"),
+  },
 ];
 
-export function LifecycleTimeline({ complaintId, createdAt }: { complaintId: string; createdAt?: string }) {
+export function LifecycleTimeline({
+  complaintId,
+  createdAt,
+}: {
+  complaintId: string;
+  createdAt?: string;
+}) {
   const [events, setEvents] = useState<Ev[] | null>(null);
 
   useEffect(() => {
     let cancel = false;
     (async () => {
       if (isDemoMode()) {
-        setEvents(DEMO_EVENTS[complaintId] ?? [{ event: "reported", created_at: createdAt ?? new Date().toISOString() }]);
+        setEvents(
+          DEMO_EVENTS[complaintId] ?? [
+            { event: "reported", created_at: createdAt ?? new Date().toISOString() },
+          ],
+        );
         return;
       }
       const { data } = await supabase
@@ -39,12 +69,14 @@ export function LifecycleTimeline({ complaintId, createdAt }: { complaintId: str
       if (cancel) return;
       const seed: Ev[] = [
         { event: "reported", created_at: createdAt ?? new Date().toISOString() },
-        { event: "synced",   created_at: createdAt ?? new Date().toISOString() },
+        { event: "synced", created_at: createdAt ?? new Date().toISOString() },
         ...((data ?? []) as Ev[]),
       ];
       setEvents(seed);
     })();
-    return () => { cancel = true; };
+    return () => {
+      cancel = true;
+    };
   }, [complaintId, createdAt]);
 
   if (!events) {
@@ -81,7 +113,9 @@ export function LifecycleTimeline({ complaintId, createdAt }: { complaintId: str
               {done ? <Check className="h-3 w-3" /> : <Circle className="h-2 w-2" />}
             </span>
             <div className="flex-1">
-              <div className={`text-[13px] ${done ? "font-medium text-foreground" : "text-muted-foreground"}`}>
+              <div
+                className={`text-[13px] ${done ? "font-medium text-foreground" : "text-muted-foreground"}`}
+              >
                 {step.label}
               </div>
               {hit && (
