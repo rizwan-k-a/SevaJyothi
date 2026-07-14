@@ -10,6 +10,7 @@ import {
   CloudUpload,
   ImagePlus,
   MapPin,
+  RefreshCw,
   Upload,
   X,
 } from "lucide-react";
@@ -90,14 +91,14 @@ function ReportPage() {
         // If we already have a fix, ignore the error and keep it.
         setGeo((prev) => (prev.lat ? { ...prev, loading: false } : { ...prev, loading: false, error: err.message }));
       },
-      { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
+      { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 }
     );
 
-    // Stop collecting after 10 seconds and accept the best reading we found
+    // Stop collecting after 20 seconds and accept the best reading we found
     timeoutId = window.setTimeout(() => {
       navigator.geolocation.clearWatch(watchId);
       setGeo((prev) => ({ ...prev, loading: false }));
-    }, 10000);
+    }, 20000);
   };
 
   useEffect(() => {
@@ -308,50 +309,48 @@ function ReportPage() {
           {description.length}/500
         </div>
 
-        <div className="mt-4 flex items-center gap-3 rounded-2xl border border-border bg-white/40 p-3">
-          <span className="grid h-9 w-9 place-items-center rounded-xl bg-primary/5 text-primary">
-            <MapPin className="h-4 w-4" />
+        <div className="mt-4 flex items-center gap-3 rounded-2xl border border-border bg-white/40 p-3 relative overflow-hidden group">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/5 text-primary">
+            <MapPin className="h-5 w-5" />
           </span>
-          <div className="flex-1 text-[12.5px]">
-            {geo.loading && <span className="text-muted-foreground">Locating…</span>}
+          <div className="flex-1 text-[12.5px] pr-8">
+            {geo.loading && <span className="text-muted-foreground animate-pulse">Locating your position…</span>}
             {!geo.loading && geo.lat && (
-              <>
-                <div className="font-medium text-foreground leading-tight space-y-0.5">
-                  <div>Latitude: {geo.lat.toFixed(5)}</div>
-                  <div>Longitude: {geo.lng?.toFixed(5)}</div>
-                  <div className="text-[11.5px] text-muted-foreground mt-1">
-                    Accuracy ±{geo.accuracy?.toFixed(1) ?? "0"} m
-                  </div>
+              <div className="font-medium text-foreground leading-tight space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-foreground">Lat:</span> {geo.lat.toFixed(5)}
+                  <span className="text-border mx-1">|</span>
+                  <span className="text-muted-foreground">Lng:</span> {geo.lng?.toFixed(5)}
                 </div>
-              </>
+                <div className="text-[11.5px] text-muted-foreground flex items-center gap-1.5">
+                  <span className="relative flex h-2 w-2">
+                    <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${geo.accuracy! <= 100 ? 'bg-success' : 'bg-warning'}`}></span>
+                    <span className={`relative inline-flex rounded-full h-2 w-2 ${geo.accuracy! <= 100 ? 'bg-success' : 'bg-warning'}`}></span>
+                  </span>
+                  Accuracy: ±{geo.accuracy?.toFixed(1) ?? "0"} m
+                </div>
+              </div>
             )}
             {!geo.loading && geo.error && (
-              <span className="text-danger">
-                GPS unavailable - submit will continue without coordinates.
+              <span className="text-danger flex items-center gap-1.5">
+                <AlertTriangle className="h-3.5 w-3.5" />
+                GPS unavailable - continuing without coordinates.
               </span>
             )}
           </div>
+          
+          {/* Subtle Retry Button */}
+          {!geo.loading && (
+            <button
+              type="button"
+              onClick={() => acquireFix()}
+              className="absolute right-3 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-background border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent/5 transition-colors opacity-70 hover:opacity-100"
+              title="Refresh Location"
+            >
+              <RefreshCw className="h-4 w-4" />
+            </button>
+          )}
         </div>
-        {!geo.loading && geo.accuracy != null && geo.accuracy > 100 && (
-          <div className="mt-3 flex items-start gap-2 rounded-2xl border border-warning/30 bg-warning/5 p-3 text-[12px]">
-            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 flex-none text-warning" />
-            <div className="flex-1">
-              <div className="font-medium text-warning">
-                Low GPS confidence (±{Math.round(geo.accuracy)} m)
-              </div>
-              <div className="mt-0.5 text-muted-foreground">
-                You may continue or retry location for a sharper fix.
-              </div>
-              <button
-                onClick={() => acquireFix()}
-                className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-warning/40 bg-white px-3 py-1 text-[11.5px] font-medium text-warning hover:bg-warning/10"
-                data-cursor="button"
-              >
-                Retry location
-              </button>
-            </div>
-          </div>
-        )}
       </section>
 
       {/* Sticky submit — pinned to thumb zone with OS safe-area inset.
