@@ -1,6 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { RouterProvider } from "@tanstack/react-router";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 import { getRouter } from "./router";
 
 const router = getRouter();
@@ -18,6 +19,7 @@ if (!rootElement.innerHTML) {
   root.render(
     <React.StrictMode>
       <RouterProvider router={router} />
+      <SpeedInsights />
     </React.StrictMode>,
   );
 }
