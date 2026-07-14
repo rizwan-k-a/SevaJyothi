@@ -12,15 +12,15 @@ export type ComplaintCategory =
 export type ComplaintStatus = "pending_sync" | "submitted" | "assigned" | "resolved";
 
 export type StoredComplaint = {
-  id: string;                 // client-side UUID (also stored as `client_id` in cloud)
-  remoteId?: string;          // cloud row id once synced
+  id: string; // client-side UUID (also stored as `client_id` in cloud)
+  remoteId?: string; // cloud row id once synced
   category: ComplaintCategory;
   description: string;
   photoDataUrl?: string;
   photoPath?: string;
   lat?: number;
   lng?: number;
-  accuracy?: number;          // accuracy_radius in metres
+  accuracy?: number; // accuracy_radius in metres
   createdAt: number;
   syncedAt?: number;
   status: ComplaintStatus;
@@ -29,7 +29,7 @@ export type StoredComplaint = {
   // Retry/backoff metadata
   attempt_count?: number;
   last_error?: string;
-  next_retry_at?: number;     // epoch ms — do not retry before this
+  next_retry_at?: number; // epoch ms — do not retry before this
 };
 
 const DB_NAME = "sevajyothi";
@@ -137,7 +137,9 @@ function nextRetryDelayMs(attempt: number): number {
 
 async function pushOne(c: StoredComplaint): Promise<boolean> {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) return false;
 
     let photo_path: string | null = c.photoPath ?? null;
@@ -145,10 +147,15 @@ async function pushOne(c: StoredComplaint): Promise<boolean> {
       const f = dataUrlToBlob(c.photoDataUrl);
       if (f) {
         const path = `${user.id}/${c.id}.${f.ext}`;
-        const { error: upErr } = await supabase.storage
-          .from("complaint-media")
-          .upload(path, f.blob, { upsert: true, contentType: f.blob.type });
+        const { data: upData, error: upErr } = await supabase.functions.invoke("upload-media", {
+          body: {
+            path,
+            dataUrl: c.photoDataUrl,
+            contentType: f.blob.type,
+          }
+        });
         if (upErr) throw upErr;
+        if (upData?.error) throw new Error(upData.error);
         photo_path = path;
       }
     }
@@ -174,16 +181,7 @@ async function pushOne(c: StoredComplaint): Promise<boolean> {
 
     if (error) throw error;
 
-    await update(c.id, {
-      status: "submitted",
-      syncedAt: Date.now(),
-      remoteId: data.id,
-      photoPath: photo_path ?? undefined,
-      photoDataUrl: photo_path ? undefined : c.photoDataUrl,
-      syncError: undefined,
-      last_error: undefined,
-      next_retry_at: undefined,
-    });
+    await deleteComplaint(c.id);
     return true;
   } catch (err: any) {
     const attempt = (c.attempt_count ?? 0) + 1;
@@ -199,14 +197,14 @@ async function pushOne(c: StoredComplaint): Promise<boolean> {
   }
 }
 
-export async function flushPendingComplaints(): Promise<number> {
+export async function flushPendingComplaints(force = false): Promise<number> {
   if (typeof navigator !== "undefined" && !navigator.onLine) return 0;
   const pending = await getPendingComplaints();
   const now = Date.now();
   let n = 0;
   for (const c of pending) {
     // Respect backoff window.
-    if (c.next_retry_at && c.next_retry_at > now) continue;
+    if (!force && c.next_retry_at && c.next_retry_at > now) continue;
     const ok = await pushOne(c);
     if (ok) n += 1;
   }

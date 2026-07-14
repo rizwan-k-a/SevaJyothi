@@ -55,8 +55,9 @@ export async function registerPushWorker(): Promise<ServiceWorkerRegistration> {
   return navigator.serviceWorker.register("/push-sw.js", { scope: "/push-sw.js" });
 }
 
-export async function subscribeToPush(): Promise<{ status: "subscribed" | "denied" | "unsupported" }>
-{
+export async function subscribeToPush(): Promise<{
+  status: "subscribed" | "denied" | "unsupported";
+}> {
   if (!pushSupported()) return { status: "unsupported" };
 
   const perm = await Notification.requestPermission();
@@ -81,19 +82,17 @@ export async function subscribeToPush(): Promise<{ status: "subscribed" | "denie
   const uid = userData.user?.id;
   if (!uid) return { status: "denied" };
 
-  await supabase
-    .from("push_subscriptions")
-    .upsert(
-      {
-        user_id: uid,
-        endpoint,
-        p256dh,
-        auth,
-        user_agent: navigator.userAgent,
-        last_seen_at: new Date().toISOString(),
-      },
-      { onConflict: "endpoint" }
-    );
+  await supabase.from("push_subscriptions").upsert(
+    {
+      user_id: uid,
+      endpoint,
+      p256dh,
+      auth,
+      user_agent: navigator.userAgent,
+      last_seen_at: new Date().toISOString(),
+    },
+    { onConflict: "endpoint" },
+  );
 
   return { status: "subscribed" };
 }

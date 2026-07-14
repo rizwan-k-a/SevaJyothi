@@ -3,8 +3,8 @@
 // vs raw camera output, while staying readable for technician triage.
 
 export type CompressOpts = {
-  maxEdge?: number;   // longest edge in px
-  quality?: number;   // 0..1 (JPEG)
+  maxEdge?: number; // longest edge in px
+  quality?: number; // 0..1 (JPEG)
   mimeType?: "image/jpeg" | "image/webp";
 };
 
@@ -47,7 +47,11 @@ export async function compressImageFile(
 
 async function loadBitmap(file: File): Promise<ImageBitmap | HTMLImageElement> {
   if ("createImageBitmap" in window) {
-    try { return await createImageBitmap(file); } catch { /* fall through */ }
+    try {
+      return await createImageBitmap(file);
+    } catch {
+      /* fall through */
+    }
   }
   const url = URL.createObjectURL(file);
   try {

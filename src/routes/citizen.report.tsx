@@ -1,7 +1,18 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
-import { AlertTriangle, ArrowLeft, Camera, CheckCircle2, CloudOff, CloudUpload, ImagePlus, MapPin, Upload, X } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowLeft,
+  Camera,
+  CheckCircle2,
+  CloudOff,
+  CloudUpload,
+  ImagePlus,
+  MapPin,
+  Upload,
+  X,
+} from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { CATEGORY_META, CATEGORY_ORDER } from "@/lib/complaints/meta";
@@ -35,46 +46,63 @@ function ReportPage() {
   const [photo, setPhoto] = useState<string | null>(null);
   const [geo, setGeo] = useState<GeoState>({ loading: true, attempts: 0 });
   const [submitting, setSubmitting] = useState(false);
-  const [done, setDone] = useState<{ stored: "queued" | "synced" } | null>(null);
+  const [activeReportId, setActiveReportId] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  // High-accuracy GPS with up to 3 retries if accuracy > 100 m.
-  const acquireFix = (attempt = 0) => {
+  const acquireFix = () => {
     if (!("geolocation" in navigator)) {
       setGeo({ loading: false, error: "Geolocation not supported" });
       return;
     }
-    setGeo((g) => ({ ...g, loading: true, attempts: attempt }));
-    navigator.geolocation.getCurrentPosition(
+    setGeo((g) => ({ ...g, loading: true, attempts: (g.attempts || 0) + 1 }));
+
+    let bestGeo: GeoState | null = null;
+    let timeoutId: number;
+
+    const watchId = navigator.geolocation.watchPosition(
       (pos) => {
         const acc = pos.coords.accuracy;
         const next: GeoState = {
-          loading: false,
+          loading: true, // Keep loading indicator until timeout or excellent fix
           lat: pos.coords.latitude,
           lng: pos.coords.longitude,
           accuracy: acc,
           heading: pos.coords.heading,
           speed: pos.coords.speed,
           timestamp: pos.timestamp,
-          attempts: attempt + 1,
         };
-        if (acc > 100 && attempt < 2) {
-          setGeo(next);
-          setTimeout(() => acquireFix(attempt + 1), 1500);
-        } else {
-          setGeo(next);
+
+        // Update if first fix or better accuracy. Ignore terrible fixes (>100m) unless we have nothing else.
+        if (!bestGeo || acc < (bestGeo.accuracy ?? Infinity)) {
+          // If the new one is > 100m and we already have a fix (even a bad one), we still prefer the better one.
+          bestGeo = next;
+          setGeo((prev) => ({ ...prev, ...next }));
+        }
+
+        // If we get an excellent fix (<20m), we can stop early
+        if (acc <= 20) {
+          navigator.geolocation.clearWatch(watchId);
+          clearTimeout(timeoutId);
+          setGeo((prev) => ({ ...prev, loading: false }));
         }
       },
       (err) => {
-        if (attempt < 2) setTimeout(() => acquireFix(attempt + 1), 1500);
-        else setGeo({ loading: false, error: err.message, attempts: attempt + 1 });
+        // If we already have a fix, ignore the error and keep it.
+        setGeo((prev) => (prev.lat ? { ...prev, loading: false } : { ...prev, loading: false, error: err.message }));
       },
-      { enableHighAccuracy: true, timeout: 15_000, maximumAge: 0 },
+      { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
     );
+
+    // Stop collecting after 10 seconds and accept the best reading we found
+    timeoutId = window.setTimeout(() => {
+      navigator.geolocation.clearWatch(watchId);
+      setGeo((prev) => ({ ...prev, loading: false }));
+    }, 10000);
   };
 
-  useEffect(() => { acquireFix(0); /* eslint-disable-next-line */ }, []);
-
+  useEffect(() => {
+    acquireFix(); /* eslint-disable-next-line */
+  }, []);
 
   const onPickFile = async (file?: File | null) => {
     if (!file) return;
@@ -94,7 +122,7 @@ function ReportPage() {
     }
   };
 
-  const canSubmit = !!category && !submitting && !done;
+  const canSubmit = !!category && !submitting && !activeReportId;
 
   const submit = async () => {
     if (!category) return;
@@ -113,29 +141,15 @@ function ReportPage() {
         status: "pending_sync",
       });
 
+      await refresh(); // ensure OfflineProvider knows about it
+      setActiveReportId(id);
+
       if (online) {
-        const n = await flushPendingComplaints();
-        await refresh();
-        // Surface rate-limit / server rejections instead of silently queuing forever.
-        if (n === 0) {
-          const { getPendingComplaints } = await import("@/lib/offline/db");
-          const pend = await getPendingComplaints();
-          const mine = pend.find((p) => p.id === id);
-          if (mine?.last_error) {
-            if (/Too many reports/i.test(mine.last_error)) {
-              toast.error("Too many reports submitted. Please wait a few minutes.");
-            } else {
-              toast.message("Saved — will retry sync", { description: mine.last_error });
-            }
-            setDone({ stored: "queued" });
-            return;
-          }
-        }
-        setDone({ stored: n > 0 ? "synced" : "queued" });
+        // flushNow will pick it up immediately
+        const { flushNow } = await import("@/components/providers/OfflineProvider");
+        // We do not await it here, the UI will just observe the state
       } else {
         await registerBackgroundSync("sj-flush-complaints");
-        await refresh();
-        setDone({ stored: "queued" });
       }
     } catch {
       toast.error("Couldn't save the report. Try again.");
@@ -144,24 +158,42 @@ function ReportPage() {
     }
   };
 
-  if (done) {
-    return <SuccessScreen mode={done.stored} onView={() => navigate({ to: "/citizen" })} onAnother={() => {
-      setDone(null); setCategory(null); setDescription(""); setPhoto(null);
-    }} />;
+  if (activeReportId) {
+    return (
+      <SyncStatusScreen
+        reportId={activeReportId}
+        onView={() => navigate({ to: "/citizen" })}
+        onAnother={() => {
+          setActiveReportId(null);
+          setCategory(null);
+          setDescription("");
+          setPhoto(null);
+        }}
+      />
+    );
   }
 
   return (
-    <div className="mx-auto max-w-3xl px-4 pt-20 pb-28 sm:px-6 sm:pt-28 sm:pb-24" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 96px)" }}>
-
-      <Link to="/citizen" className="mb-6 inline-flex items-center gap-2 text-[13px] text-muted-foreground hover:text-foreground" data-cursor="link">
+    <div
+      className="mx-auto max-w-3xl px-4 pt-20 pb-28 sm:px-6 sm:pt-28 sm:pb-24"
+      style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 96px)" }}
+    >
+      <Link
+        to="/citizen"
+        className="mb-6 inline-flex items-center gap-2 text-[13px] text-muted-foreground hover:text-foreground"
+        data-cursor="link"
+      >
         <ArrowLeft className="h-4 w-4" /> Back to dashboard
       </Link>
 
       <div className="mb-8">
-        <div className="text-mono-data text-[11px] uppercase tracking-[0.16em] text-accent">New report</div>
+        <div className="text-mono-data text-[11px] uppercase tracking-[0.16em] text-accent">
+          New report
+        </div>
         <h1 className="mt-2 text-display text-[clamp(2rem,4vw,3rem)]">
           Tell us what's{" "}
-          <span className="text-accent-script text-accent text-[1.25em] leading-[0.6]">broken</span>.
+          <span className="text-accent-script text-accent text-[1.25em] leading-[0.6]">broken</span>
+          .
         </h1>
       </div>
 
@@ -179,7 +211,9 @@ function ReportPage() {
                 onClick={() => setCategory(key)}
                 data-cursor="button"
                 className={`group relative overflow-hidden rounded-2xl border p-3 text-left transition-all sm:p-4 ${
-                  active ? "border-transparent ring-2 ring-accent bg-white" : "border-border bg-white/50 hover:bg-white"
+                  active
+                    ? "border-transparent ring-2 ring-accent bg-white"
+                    : "border-border bg-white/50 hover:bg-white"
                 }`}
               >
                 <span
@@ -188,12 +222,19 @@ function ReportPage() {
                 >
                   <meta.icon className="h-4 w-4 sm:h-[18px] sm:w-[18px]" />
                 </span>
-                <div className="mt-2 text-[13px] font-medium leading-tight sm:mt-3 sm:text-[13.5px]">{meta.label}</div>
-                <div className="mt-0.5 line-clamp-2 text-[11px] text-muted-foreground sm:text-[11.5px]">{meta.description}</div>
+                <div className="mt-2 text-[13px] font-medium leading-tight sm:mt-3 sm:text-[13.5px]">
+                  {meta.label}
+                </div>
+                <div className="mt-0.5 line-clamp-2 text-[11px] text-muted-foreground sm:text-[11.5px]">
+                  {meta.description}
+                </div>
                 {active && (
-                  <motion.span layoutId="cat-glow"
+                  <motion.span
+                    layoutId="cat-glow"
                     className="absolute inset-0 -z-10 rounded-2xl"
-                    style={{ background: `radial-gradient(closest-side, ${meta.color}22, transparent 70%)` }}
+                    style={{
+                      background: `radial-gradient(closest-side, ${meta.color}22, transparent 70%)`,
+                    }}
                   />
                 )}
               </motion.button>
@@ -204,7 +245,11 @@ function ReportPage() {
 
       {/* Step 2 — Photo */}
       <section className="glass mb-4 rounded-3xl p-4 sm:mb-5 sm:p-6">
-        <SectionHeading n={2} label="Add a photo" hint="Optional but powerful — helps technicians prepare" />
+        <SectionHeading
+          n={2}
+          label="Add a photo"
+          hint="Optional but powerful — helps technicians prepare"
+        />
         <input
           ref={fileRef}
           type="file"
@@ -259,7 +304,9 @@ function ReportPage() {
           placeholder="Transformer near the school exploded around 6:30 PM. No power in the lane."
           className="mt-4 w-full resize-none rounded-2xl border border-input bg-white/60 p-3 text-[16px] outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20 sm:mt-5 sm:p-4 sm:text-[14px]"
         />
-        <div className="mt-2 text-right text-[11px] text-muted-foreground">{description.length}/500</div>
+        <div className="mt-2 text-right text-[11px] text-muted-foreground">
+          {description.length}/500
+        </div>
 
         <div className="mt-4 flex items-center gap-3 rounded-2xl border border-border bg-white/40 p-3">
           <span className="grid h-9 w-9 place-items-center rounded-xl bg-primary/5 text-primary">
@@ -269,16 +316,19 @@ function ReportPage() {
             {geo.loading && <span className="text-muted-foreground">Locating…</span>}
             {!geo.loading && geo.lat && (
               <>
-                <div className="font-medium text-foreground">
-                  {geo.lat.toFixed(5)}, {geo.lng?.toFixed(5)}
-                </div>
-                <div className="text-muted-foreground text-[11.5px]">
-                  Auto-captured · accuracy ±{Math.round(geo.accuracy ?? 0)} m
+                <div className="font-medium text-foreground leading-tight space-y-0.5">
+                  <div>Latitude: {geo.lat.toFixed(5)}</div>
+                  <div>Longitude: {geo.lng?.toFixed(5)}</div>
+                  <div className="text-[11.5px] text-muted-foreground mt-1">
+                    Accuracy ±{geo.accuracy?.toFixed(1) ?? "0"} m
+                  </div>
                 </div>
               </>
             )}
             {!geo.loading && geo.error && (
-              <span className="text-danger">GPS unavailable — submit will continue without coordinates.</span>
+              <span className="text-danger">
+                GPS unavailable - submit will continue without coordinates.
+              </span>
             )}
           </div>
         </div>
@@ -286,12 +336,14 @@ function ReportPage() {
           <div className="mt-3 flex items-start gap-2 rounded-2xl border border-warning/30 bg-warning/5 p-3 text-[12px]">
             <AlertTriangle className="mt-0.5 h-3.5 w-3.5 flex-none text-warning" />
             <div className="flex-1">
-              <div className="font-medium text-warning">Low GPS confidence (±{Math.round(geo.accuracy)} m)</div>
+              <div className="font-medium text-warning">
+                Low GPS confidence (±{Math.round(geo.accuracy)} m)
+              </div>
               <div className="mt-0.5 text-muted-foreground">
                 You may continue or retry location for a sharper fix.
               </div>
               <button
-                onClick={() => acquireFix(0)}
+                onClick={() => acquireFix()}
                 className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-warning/40 bg-white px-3 py-1 text-[11.5px] font-medium text-warning hover:bg-warning/10"
                 data-cursor="button"
               >
@@ -300,7 +352,6 @@ function ReportPage() {
             </div>
           </div>
         )}
-
       </section>
 
       {/* Sticky submit — pinned to thumb zone with OS safe-area inset.
@@ -313,9 +364,15 @@ function ReportPage() {
         <div className="pointer-events-auto glass flex items-center gap-2 rounded-2xl p-2 sm:gap-3 sm:p-3">
           <div className="hidden flex-1 px-2 text-[12.5px] text-muted-foreground sm:block">
             {online ? (
-              <span className="inline-flex items-center gap-1.5"><CloudUpload className="h-3.5 w-3.5 text-success" /> Online — will submit immediately</span>
+              <span className="inline-flex items-center gap-1.5">
+                <CloudUpload className="h-3.5 w-3.5 text-success" /> Online - will submit
+                immediately
+              </span>
             ) : (
-              <span className="inline-flex items-center gap-1.5"><CloudOff className="h-3.5 w-3.5 text-warning" /> Offline — will store securely and sync later</span>
+              <span className="inline-flex items-center gap-1.5">
+                <CloudOff className="h-3.5 w-3.5 text-warning" /> Offline - will store securely and
+                sync later
+              </span>
             )}
           </div>
           <button
@@ -329,7 +386,6 @@ function ReportPage() {
           </button>
         </div>
       </div>
-
     </div>
   );
 }
@@ -337,7 +393,9 @@ function ReportPage() {
 function SectionHeading({ n, label, hint }: { n: number; label: string; hint: string }) {
   return (
     <div className="flex items-center gap-3">
-      <span className="grid h-7 w-7 place-items-center rounded-full bg-primary text-mono-data text-[11px] text-primary-foreground">{n}</span>
+      <span className="grid h-7 w-7 place-items-center rounded-full bg-primary text-mono-data text-[11px] text-primary-foreground">
+        {n}
+      </span>
       <div>
         <div className="text-display text-[20px] leading-none">{label}</div>
         <div className="mt-1 text-[12px] text-muted-foreground">{hint}</div>
@@ -346,7 +404,74 @@ function SectionHeading({ n, label, hint }: { n: number; label: string; hint: st
   );
 }
 
-function SuccessScreen({ mode, onView, onAnother }: { mode: "queued" | "synced"; onView: () => void; onAnother: () => void }) {
+function SyncStatusScreen({
+  reportId,
+  onView,
+  onAnother,
+}: {
+  reportId: string;
+  onView: () => void;
+  onAnother: () => void;
+}) {
+  const { online, pending, isSyncing } = useOffline();
+  const [existsInDb, setExistsInDb] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    // Check IndexedDB directly to be absolutely certain of success (deleted) vs pending
+    const checkDb = async () => {
+      const { getAllComplaints } = await import("@/lib/offline/db");
+      const all = await getAllComplaints();
+      setExistsInDb(all.some(c => c.id === reportId));
+    };
+    checkDb();
+    const timer = setInterval(checkDb, 500);
+    return () => clearInterval(timer);
+  }, [reportId]);
+  
+  // Find the report in the pending queue for error details
+  const myReport = pending.find(p => p.id === reportId);
+  
+  // Wait until we know for sure if it exists in DB to prevent flash of success
+  if (existsInDb === null) return <div className="mx-auto grid min-h-[100svh] place-items-center"><div className="animate-pulse">Loading...</div></div>;
+  
+  // If it's no longer in IndexedDB, it was successfully synced and deleted!
+  const isSuccess = !existsInDb;
+  
+  const isQueued = existsInDb;
+  const isFailed = myReport?.last_error ? true : false;
+  
+  let title = "Queued";
+  let description = "Waiting for connection...";
+  let icon = <CloudOff className="h-7 w-7 text-warning" />;
+  let bgColor = "oklch(0.78 0.15 75 / 0.18)";
+  
+  if (isSuccess) {
+    title = "Synchronization complete";
+    description = "Your report is securely stored on the network.";
+    icon = <CheckCircle2 className="h-7 w-7" style={{ color: "oklch(0.55 0.15 162)" }} />;
+    bgColor = "oklch(0.70 0.16 162 / 0.15)";
+  } else if (online && isSyncing) {
+    title = "Syncing...";
+    description = "Uploading your report to the server.";
+    icon = <CloudUpload className="h-7 w-7 text-primary animate-pulse" />;
+    bgColor = "bg-primary/10";
+  } else if (isFailed && online) {
+    title = "Sync failed";
+    description = `${myReport.last_error || 'Network error'}\n\nRetrying...`;
+    icon = <AlertTriangle className="h-7 w-7 text-danger" />;
+    bgColor = "bg-danger/10";
+  } else if (isQueued && online && !isSyncing) {
+    title = "Queued";
+    description = "Waiting for sync cycle...";
+    icon = <CloudUpload className="h-7 w-7 text-primary animate-pulse" />;
+    bgColor = "bg-primary/10";
+  } else {
+    title = "Queued";
+    description = "Waiting for internet connection...";
+    icon = <CloudOff className="h-7 w-7 text-warning" />;
+    bgColor = "oklch(0.78 0.15 75 / 0.18)";
+  }
+
   return (
     <div className="mx-auto grid min-h-[100svh] max-w-md place-items-center px-6">
       <motion.div
@@ -355,28 +480,35 @@ function SuccessScreen({ mode, onView, onAnother }: { mode: "queued" | "synced";
         transition={{ duration: 0.6, ease: [0.2, 0.8, 0.2, 1] }}
         className="glass w-full rounded-3xl p-8 text-center"
       >
-        <div className="mx-auto mb-6 grid h-16 w-16 place-items-center rounded-full"
-          style={{ background: mode === "synced" ? "oklch(0.70 0.16 162 / 0.15)" : "oklch(0.78 0.15 75 / 0.18)" }}>
-          {mode === "synced"
-            ? <CheckCircle2 className="h-7 w-7" style={{ color: "oklch(0.55 0.15 162)" }} />
-            : <CloudOff className="h-7 w-7" style={{ color: "oklch(0.55 0.15 75)" }} />}
+        <div
+          className={`mx-auto mb-6 grid h-16 w-16 place-items-center rounded-full ${bgColor}`}
+          style={bgColor.startsWith('oklch') ? { background: bgColor } : {}}
+        >
+          {icon}
         </div>
-        <h2 className="text-display text-3xl">
-          {mode === "synced" ? "Report received." : "Stored securely."}
-        </h2>
-        <p className="mt-2 text-[14px] text-muted-foreground">
-          {mode === "synced"
-            ? "It's on the network. You'll see status updates as the team takes action."
-            : "Waiting for signal. We'll sync the moment it returns — you don't have to do anything."}
+        <h2 className="text-display text-3xl">{title}</h2>
+        <p className="mt-2 text-[14px] text-muted-foreground whitespace-pre-line">
+          {description}
         </p>
-        <div className="mt-7 flex flex-col gap-2">
-          <button onClick={onView} data-cursor="cta" className="w-full rounded-full bg-primary py-3 text-[14px] font-medium text-primary-foreground transition hover:brightness-110">
-            View my reports
-          </button>
-          <button onClick={onAnother} data-cursor="button" className="w-full rounded-full border border-border bg-white/70 py-3 text-[14px] font-medium text-foreground transition hover:bg-white">
-            File another
-          </button>
-        </div>
+        
+        {isSuccess && (
+          <div className="mt-7 flex flex-col gap-2">
+            <button
+              onClick={onView}
+              data-cursor="cta"
+              className="w-full rounded-full bg-primary py-3 text-[14px] font-medium text-primary-foreground transition hover:brightness-110"
+            >
+              View my reports
+            </button>
+            <button
+              onClick={onAnother}
+              data-cursor="button"
+              className="w-full rounded-full border border-border bg-white/70 py-3 text-[14px] font-medium text-foreground transition hover:bg-white"
+            >
+              File another
+            </button>
+          </div>
+        )}
       </motion.div>
     </div>
   );
