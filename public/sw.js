@@ -1,6 +1,6 @@
 /* SevaJyothi Service Worker — minimal app-shell cache + background sync.
    Registered only in production from src/components/providers/OfflineProvider. */
-const CACHE = "sj-shell-v1";
+const CACHE = "sj-shell-v2";
 const TILE_CACHE = "sj-tiles-v1";
 const TILE_CACHE_MAX = 350; // ~10MB at avg 28KB per CARTO raster tile
 const SHELL = ["/", "/manifest.webmanifest", "/icon.svg"];

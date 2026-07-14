@@ -7,12 +7,25 @@
  */
 import { createClient } from "@supabase/supabase-js";
 
-const URL = "https://zsuyilojjnmitdpawosq.supabase.co";
+const URL = process.env.RESILIENCE_SUPABASE_URL ?? process.env.SUPABASE_URL;
 const ANON =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpzdXlpbG9qam5taXRkcGF3b3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1NDg4MjQsImV4cCI6MjA5ODEyNDgyNH0.77OECgWLqgPy5gmz6xH8reZVRzQhEEoRqR7KsZOYiqQ";
+  process.env.RESILIENCE_SUPABASE_ANON_KEY ??
+  process.env.SUPABASE_PUBLISHABLE_KEY ??
+  process.env.SUPABASE_ANON_KEY;
 
-const CITIZEN = { email: "citizen1@sevajyothi.dev", password: "Citizen123456" };
-const ADMIN = { email: "admin@sevajyothi.dev", password: "Admin123456" };
+const CITIZEN = {
+  email: process.env.RESILIENCE_CITIZEN_EMAIL,
+  password: process.env.RESILIENCE_CITIZEN_PASSWORD,
+};
+const ADMIN = {
+  email: process.env.RESILIENCE_ADMIN_EMAIL,
+  password: process.env.RESILIENCE_ADMIN_PASSWORD,
+};
+
+if (!URL) throw new Error("RESILIENCE_SUPABASE_URL or SUPABASE_URL is required");
+if (!ANON) throw new Error("RESILIENCE_SUPABASE_ANON_KEY or SUPABASE_PUBLISHABLE_KEY is required");
+if (!CITIZEN.email || !CITIZEN.password) throw new Error("RESILIENCE_CITIZEN_EMAIL and RESILIENCE_CITIZEN_PASSWORD are required");
+if (!ADMIN.email || !ADMIN.password) throw new Error("RESILIENCE_ADMIN_EMAIL and RESILIENCE_ADMIN_PASSWORD are required");
 
 const out = [];
 const log = (name, status, ms, note = "") => {
@@ -69,7 +82,10 @@ async function main() {
 
   // 2 — Rate limit (5 per 10 min trigger)
   await test("rate limit blocks 6th", async () => {
-    const burst = await withClient({ email: "citizen2@sevajyothi.dev", password: "Citizen123456" });
+    const burst = await withClient({
+      email: process.env.RESILIENCE_BURST_EMAIL,
+      password: process.env.RESILIENCE_BURST_PASSWORD,
+    });
     let blocked = false;
     for (let i = 0; i < 6; i++) {
       const r = await sup(burst)
@@ -95,8 +111,8 @@ async function main() {
   // 3 — RLS isolation (citizen can't read another reporter's row)
   await test("RLS blocks cross-user read", async () => {
     const c2 = await withClient({
-      email: "citizen2@sevajyothi.dev",
-      password: "Citizen123456",
+      email: process.env.RESILIENCE_BURST_EMAIL,
+      password: process.env.RESILIENCE_BURST_PASSWORD,
     }).catch(() => null);
     if (!c2) return "skipped (no citizen2)";
     // c2 inserts

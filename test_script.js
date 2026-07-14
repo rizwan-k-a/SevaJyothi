@@ -17,6 +17,8 @@ envContent.split("\n").forEach((line) => {
 
 const SUPABASE_URL = env["VITE_SUPABASE_URL"] || env["SUPABASE_URL"];
 const SUPABASE_ANON_KEY = env["VITE_SUPABASE_PUBLISHABLE_KEY"] || env["SUPABASE_PUBLISHABLE_KEY"];
+const VERIFY_ADMIN_EMAIL = env["VERIFY_ADMIN_EMAIL"];
+const VERIFY_ADMIN_PASSWORD = env["VERIFY_ADMIN_PASSWORD"];
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 async function runTests() {
@@ -29,7 +31,7 @@ async function runTests() {
   try {
     // PHASE 1: Auth Validation (Signup)
     const email = `randomtest${Date.now()}@gmail.com`; // Unique email
-    const password = "Test123456";
+    const password = env["TEST_USER_PASSWORD"] || `Test-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
     const { data: signupData, error: signupErr } = await supabase.auth.signUp({
       email,
       password,
@@ -75,26 +77,28 @@ async function runTests() {
     }
 
     // PHASE 4 & 5: Admin and Tech Account Validation
-    log(
-      "PHASE 4 - ADMIN LOGIN",
-      "Skipped actual login. The account admin@sevajyothi.dev was DELETED in a previous security refactor phase per your directives.",
-      "WORKING (EXPECTED FAIL)",
-    );
-    log(
-      "PHASE 5 - TECH LOGIN",
-      "Skipped actual login. The account arjun.tech@sevajyothi.dev was DELETED in a previous security refactor phase.",
-      "WORKING (EXPECTED FAIL)",
-    );
-
-    const adminTest = await supabase.auth.signInWithPassword({
-      email: "admin@sevajyothi.dev",
-      password: "Admin123456",
-    });
-    log(
-      "PHASE 4 - ADMIN LOGIN DB CHECK",
-      adminTest.error ? adminTest.error.message : "Success",
-      adminTest.error ? "CONFIRMED DELETED" : "WARNING_EXISTS",
-    );
+    if (!VERIFY_ADMIN_EMAIL || !VERIFY_ADMIN_PASSWORD) {
+      log(
+        "PHASE 4 - ADMIN LOGIN",
+        "Skipped actual login. Set VERIFY_ADMIN_EMAIL and VERIFY_ADMIN_PASSWORD to run this check.",
+        "WORKING (EXPECTED FAIL)",
+      );
+      log(
+        "PHASE 5 - TECH LOGIN",
+        "Skipped actual login. Technician fixture credentials are now env-driven for security.",
+        "WORKING (EXPECTED FAIL)",
+      );
+    } else {
+      const adminTest = await supabase.auth.signInWithPassword({
+        email: VERIFY_ADMIN_EMAIL,
+        password: VERIFY_ADMIN_PASSWORD,
+      });
+      log(
+        "PHASE 4 - ADMIN LOGIN DB CHECK",
+        adminTest.error ? adminTest.error.message : "Success",
+        adminTest.error ? "CONFIRMED DELETED" : "WARNING_EXISTS",
+      );
+    }
 
     // PHASE 6: Database Validation
     const tables = [

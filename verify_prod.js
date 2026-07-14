@@ -3,6 +3,8 @@ import { createClient } from "@supabase/supabase-js";
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SECRET = process.env.SUPABASE_SECRET_KEY;
 const SUPABASE_ANON = process.env.SUPABASE_PUBLISHABLE_KEY ?? process.env.SUPABASE_ANON_KEY;
+const VERIFY_ADMIN_EMAIL = process.env.VERIFY_ADMIN_EMAIL;
+const VERIFY_ADMIN_PASSWORD = process.env.VERIFY_ADMIN_PASSWORD;
 
 if (!SUPABASE_URL) throw new Error("SUPABASE_URL is required");
 if (!SUPABASE_SECRET) throw new Error("SUPABASE_SECRET_KEY is required");
@@ -19,7 +21,11 @@ async function run() {
   report.users = userErr ? `FAIL: ${userErr.message}` : users?.users?.length + " users found";
 
   console.log("Testing Admin Account...");
-  const adminAccount = users?.users?.find((u) => u.email === "rizurizz3737@gmail.com");
+  if (!VERIFY_ADMIN_EMAIL || !VERIFY_ADMIN_PASSWORD) {
+    console.log("\n[4] Verifying Admin Account... skipped (VERIFY_ADMIN_EMAIL / VERIFY_ADMIN_PASSWORD not set)");
+  } else {
+    console.log("\n[4] Verifying Admin Account (env-provided)...");
+    const adminAccount = users?.users?.find((u) => u.email === VERIFY_ADMIN_EMAIL);
   if (adminAccount) {
     const { data: roles } = await admin
       .from("user_roles")

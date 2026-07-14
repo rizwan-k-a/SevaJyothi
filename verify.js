@@ -17,6 +17,9 @@ envContent.split("\n").forEach((line) => {
 const SUPABASE_URL = env["VITE_SUPABASE_URL"] || env["SUPABASE_URL"];
 const SUPABASE_SERVICE_KEY = env["SUPABASE_SECRET_KEY"];
 const SUPABASE_ANON_KEY = env["VITE_SUPABASE_PUBLISHABLE_KEY"] || env["VITE_SUPABASE_ANON_KEY"];
+const VERIFY_TEST_PASSWORD = env["VERIFY_TEST_PASSWORD"] || `Test-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+const VERIFY_ADMIN_EMAIL = env["VERIFY_ADMIN_EMAIL"];
+const VERIFY_ADMIN_PASSWORD = env["VERIFY_ADMIN_PASSWORD"];
 
 if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY || SUPABASE_SERVICE_KEY === "your-secret-key") {
   console.error("FATAL: SUPABASE_SECRET_KEY is missing or invalid. Admin tests will fail.");
@@ -51,7 +54,7 @@ async function runTests() {
   const testEmail = `test_cit_${Date.now()}@example.com`;
   const { data: signupData, error: signupErr } = await adminClient.auth.admin.createUser({
     email: testEmail,
-    password: "TestPassword123!",
+    password: VERIFY_TEST_PASSWORD,
     email_confirm: true,
   });
   if (signupErr) {
@@ -102,26 +105,30 @@ async function runTests() {
   }
 
   // 4. Verify admin account
-  console.log("\n[4] Verifying Admin Account (rizurizz3737@gmail.com)...");
-  const { data: adminLogin, error: adminLoginErr } = await anonClient.auth.signInWithPassword({
-    email: "rizurizz3737@gmail.com",
-    password: "@rizwanka",
-  });
-  if (adminLoginErr) {
-    console.log("❌ Admin Login Failed:", adminLoginErr.message);
+  if (!VERIFY_ADMIN_EMAIL || !VERIFY_ADMIN_PASSWORD) {
+    console.log("\n[4] Verifying Admin Account... skipped (VERIFY_ADMIN_EMAIL / VERIFY_ADMIN_PASSWORD not set)");
   } else {
-    const { data: adminRole } = await anonClient
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", adminLogin.user.id)
-      .single();
-    if (adminRole?.role === "authority") {
-      console.log("✅ Admin Login Passed. Role verified as 'authority'.");
+    console.log("\n[4] Verifying Admin Account (env-provided)...");
+    const { data: adminLogin, error: adminLoginErr } = await anonClient.auth.signInWithPassword({
+      email: VERIFY_ADMIN_EMAIL,
+      password: VERIFY_ADMIN_PASSWORD,
+    });
+    if (adminLoginErr) {
+      console.log("❌ Admin Login Failed:", adminLoginErr.message);
     } else {
-      console.log(
-        "❌ Admin Login Passed, but role is NOT 'authority'. Current role:",
-        adminRole?.role,
-      );
+      const { data: adminRole } = await anonClient
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", adminLogin.user.id)
+        .single();
+      if (adminRole?.role === "authority") {
+        console.log("✅ Admin Login Passed. Role verified as 'authority'.");
+      } else {
+        console.log(
+          "❌ Admin Login Passed, but role is NOT 'authority'. Current role:",
+          adminRole?.role,
+        );
+      }
     }
   }
 

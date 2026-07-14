@@ -90,10 +90,12 @@ WHERE email IN (
   'praveen.tech@sevajyothi.dev'
 );
 
--- Create single super admin (rizurizz3737@gmail.com)
+-- Create single seeded super admin using placeholder credentials
 DO $$
 DECLARE
   v_admin_uid UUID := gen_random_uuid();
+  v_admin_email TEXT := 'admin+' || replace(gen_random_uuid()::text, '-', '') || '@example.invalid';
+  v_admin_password TEXT := gen_random_uuid()::text;
 BEGIN
   -- We use pgcrypto if available, otherwise just rely on Supabase dashboard resetting the password 
   -- but since Supabase instances have pgcrypto, we will use it.
@@ -103,7 +105,7 @@ BEGIN
     raw_app_meta_data, raw_user_meta_data, created_at, updated_at, 
     confirmation_token, email_change, email_change_token_new, recovery_token
   ) VALUES (
-    '00000000-0000-0000-0000-000000000000', v_admin_uid, 'authenticated', 'authenticated', 'rizurizz3737@gmail.com', crypt('@rizwanka', gen_salt('bf')),
+    '00000000-0000-0000-0000-000000000000', v_admin_uid, 'authenticated', 'authenticated', v_admin_email, crypt(v_admin_password, gen_salt('bf')),
     now(), null, null,
     '{"provider":"email","providers":["email"]}', '{"display_name":"System Administrator"}', now(), now(),
     '', '', '', ''

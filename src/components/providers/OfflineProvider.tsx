@@ -5,6 +5,7 @@ import {
   type StoredComplaint,
 } from "@/lib/offline/db";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { supabase } from "@/config/supabase";
 import { toast } from "sonner";
 
 type Ctx = {
@@ -71,10 +72,11 @@ export function OfflineProvider({ children }: { children: ReactNode }) {
   const checkConnection = async (): Promise<boolean> => {
     if (typeof navigator !== "undefined" && !navigator.onLine) return false;
     try {
-      // Lightweight backend ping
-      const { error } = await supabase.from("profiles").select("id").limit(1);
+      // Lightweight backend ping (must use an existing table)
+      const { error } = await supabase.from("complaints").select("id").limit(1);
       return !error || error.code !== "FETCH_ERROR";
-    } catch {
+    } catch (err) {
+      if (import.meta.env.DEV) console.error("checkConnection error:", err);
       return false;
     }
   };

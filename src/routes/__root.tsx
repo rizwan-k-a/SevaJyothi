@@ -14,7 +14,6 @@ import { IntelligentCursor } from "../components/cursor/IntelligentCursor";
 import { FloatingNav } from "../components/layout/FloatingNav";
 import { OfflineProvider } from "../components/providers/OfflineProvider";
 import { AuthProvider } from "../components/providers/AuthProvider";
-import { OfflineBanner } from "../components/layout/OfflineBanner";
 import { usePWA } from "../hooks/use-pwa";
 import { Toaster } from "sonner";
 
@@ -205,7 +204,6 @@ function RootComponent() {
         <OfflineProvider>
           <IntelligentCursor />
           <FloatingNav />
-          <OfflineBanner />
           <main className="relative">
             <Outlet />
           </main>
