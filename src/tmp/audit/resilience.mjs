@@ -8,7 +8,8 @@
 import { createClient } from "@supabase/supabase-js";
 
 const URL = "https://zsuyilojjnmitdpawosq.supabase.co";
-const ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpzdXlpbG9qam5taXRkcGF3b3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1NDg4MjQsImV4cCI6MjA5ODEyNDgyNH0.77OECgWLqgPy5gmz6xH8reZVRzQhEEoRqR7KsZOYiqQ";
+const ANON =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpzdXlpbG9qam5taXRkcGF3b3NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1NDg4MjQsImV4cCI6MjA5ODEyNDgyNH0.77OECgWLqgPy5gmz6xH8reZVRzQhEEoRqR7KsZOYiqQ";
 
 const CITIZEN = { email: "citizen1@sevajyothi.dev", password: "Citizen123456" };
 const ADMIN = { email: "admin@sevajyothi.dev", password: "Admin123456" };
@@ -45,12 +46,24 @@ async function main() {
   // 1 — Duplicate client_id replay (offline sync retry)
   await test("dup client_id rejected", async () => {
     const cid = crypto.randomUUID();
-    const row = { client_id: cid, category: "street_light", description: "resilience dup", village: "Test", lat: 12.97, lng: 77.59 };
-    const a = await sup(citizen).from("complaints").insert({...row, reporter_id: (await citizen.auth.getUser()).data.user.id});
+    const row = {
+      client_id: cid,
+      category: "street_light",
+      description: "resilience dup",
+      village: "Test",
+      lat: 12.97,
+      lng: 77.59,
+    };
+    const a = await sup(citizen)
+      .from("complaints")
+      .insert({ ...row, reporter_id: (await citizen.auth.getUser()).data.user.id });
     if (a.error) throw new Error("first insert failed: " + a.error.message);
-    const b = await sup(citizen).from("complaints").insert({...row, reporter_id: (await citizen.auth.getUser()).data.user.id});
+    const b = await sup(citizen)
+      .from("complaints")
+      .insert({ ...row, reporter_id: (await citizen.auth.getUser()).data.user.id });
     if (!b.error) throw new Error("duplicate accepted (idempotency broken)");
-    if (!/duplicate|unique/i.test(b.error.message)) throw new Error("unexpected error: " + b.error.message);
+    if (!/duplicate|unique/i.test(b.error.message))
+      throw new Error("unexpected error: " + b.error.message);
     return "duplicate correctly blocked";
   });
 
@@ -59,14 +72,21 @@ async function main() {
     const burst = await withClient({ email: "citizen2@sevajyothi.dev", password: "Citizen123456" });
     let blocked = false;
     for (let i = 0; i < 6; i++) {
-      const r = await sup(burst).from("complaints").insert({reporter_id: (await burst.auth.getUser()).data.user.id,
-        client_id: crypto.randomUUID(),
-        category: "street_light",
-        description: "rate test " + i,
-        village: "RateTown",
-        lat: 12.9, lng: 77.5,
-      });
-      if (r.error && /Too many/i.test(r.error.message)) { blocked = true; break; }
+      const r = await sup(burst)
+        .from("complaints")
+        .insert({
+          reporter_id: (await burst.auth.getUser()).data.user.id,
+          client_id: crypto.randomUUID(),
+          category: "street_light",
+          description: "rate test " + i,
+          village: "RateTown",
+          lat: 12.9,
+          lng: 77.5,
+        });
+      if (r.error && /Too many/i.test(r.error.message)) {
+        blocked = true;
+        break;
+      }
     }
     if (!blocked) throw new Error("6th insert went through (rate-limit broken)");
     return "6th insert blocked";
@@ -74,15 +94,23 @@ async function main() {
 
   // 3 — RLS isolation (citizen can't read another reporter's row)
   await test("RLS blocks cross-user read", async () => {
-    const c2 = await withClient({ email: "citizen2@sevajyothi.dev", password: "Citizen123456" }).catch(() => null);
+    const c2 = await withClient({
+      email: "citizen2@sevajyothi.dev",
+      password: "Citizen123456",
+    }).catch(() => null);
     if (!c2) return "skipped (no citizen2)";
     // c2 inserts
-    const r = await c2.from("complaints").insert({reporter_id: (await c2.auth.getUser()).data.user.id,
-      client_id: crypto.randomUUID(),
-      category: "road_damage",
-      description: "rls test",
-      village: "X",
-    }).select("id").single();
+    const r = await c2
+      .from("complaints")
+      .insert({
+        reporter_id: (await c2.auth.getUser()).data.user.id,
+        client_id: crypto.randomUUID(),
+        category: "road_damage",
+        description: "rls test",
+        village: "X",
+      })
+      .select("id")
+      .single();
     if (r.error) throw new Error("c2 insert: " + r.error.message);
     // citizen tries to fetch
     const probe = await citizen.from("complaints").select("id").eq("id", r.data.id).maybeSingle();
@@ -103,7 +131,9 @@ async function main() {
   // 5 — Storage signed-url required for private bucket
   await test("storage requires signed url", async () => {
     const path = `${(await citizen.auth.getUser()).data.user.id}/test.txt`;
-    const up = await citizen.storage.from("complaint-media").upload(path, new Blob(["x"]), { upsert: true });
+    const up = await citizen.storage
+      .from("complaint-media")
+      .upload(path, new Blob(["x"]), { upsert: true });
     if (up.error) throw new Error("upload: " + up.error.message);
     // Public URL must NOT serve (private bucket)
     const pub = citizen.storage.from("complaint-media").getPublicUrl(path).data.publicUrl;
@@ -117,11 +147,17 @@ async function main() {
     let received = null;
     const ch = admin
       .channel("res-test-" + Date.now())
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "complaints" }, (p) => { received = p.new; });
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "complaints" }, (p) => {
+        received = p.new;
+      });
     await new Promise((r) => ch.subscribe((status) => status === "SUBSCRIBED" && r()));
     const cid = crypto.randomUUID();
-    await citizen.from("complaints").insert({reporter_id: (await citizen.auth.getUser()).data.user.id,
-      client_id: cid, category: "water_pipe", description: "realtime probe", village: "RT",
+    await citizen.from("complaints").insert({
+      reporter_id: (await citizen.auth.getUser()).data.user.id,
+      client_id: cid,
+      category: "water_pipe",
+      description: "realtime probe",
+      village: "RT",
     });
     const start = Date.now();
     while (!received && Date.now() - start < 6000) await new Promise((r) => setTimeout(r, 50));
@@ -155,4 +191,7 @@ async function main() {
   process.exit(pass === out.length ? 0 : 1);
 }
 
-main().catch((e) => { console.error("FATAL", e); process.exit(2); });
+main().catch((e) => {
+  console.error("FATAL", e);
+  process.exit(2);
+});
