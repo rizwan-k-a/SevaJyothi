@@ -5,3 +5,15 @@ verify_jwt = false
 
 [functions.signup]
 verify_jwt = false
+
+[functions.send-push]
+verify_jwt = false
+
+[functions.admin]
+verify_jwt = true
+[auth.email]
+enable_confirmations = false
+
+[storage]
+[storage.vector]
+enabled = false
