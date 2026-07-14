@@ -16,7 +16,6 @@ import {
 import { toast } from "sonner";
 import { supabase } from "@/config/supabase";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { CaptchaBox } from "@/components/auth/CaptchaBox";
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
@@ -60,26 +59,8 @@ function AuthPage() {
   const [region, setRegion] = useState("");
   const [technicalSkill, setTechnicalSkill] = useState("");
   const [vehicleAvailable, setVehicleAvailable] = useState(false);
-  const [captchaToken, setCaptchaToken] = useState("");
 
   const [loading, setLoading] = useState(false);
-  const [showCaptcha, setShowCaptcha] = useState(false);
-
-  // Phase 3: Debounce captcha rendering
-  useEffect(() => {
-    if (mode === "signin") return;
-    const timer = setTimeout(() => {
-      if (email.length > 3 && password.length >= 6) {
-        setShowCaptcha(true);
-      }
-    }, 400);
-    return () => clearTimeout(timer);
-  }, [email, password, mode]);
-
-  // Phase 1: Memoized handlers
-  const handleCaptchaSuccess = useCallback((token: string) => {
-    setCaptchaToken(token);
-  }, []);
 
   const handleEmailChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value),
@@ -154,10 +135,6 @@ function AuthPage() {
       toast.error("Enter a valid email and 6+ character password");
       return;
     }
-    if (mode === "signup" && !captchaToken) {
-      toast.error("Please complete the security check");
-      return;
-    }
     setLoading(true);
     try {
       if (mode === "signup") {
@@ -166,7 +143,6 @@ function AuthPage() {
             email,
             password,
             options: {
-              captchaToken: captchaToken,
               data: {
                 signup_role: "citizen",
                 display_name: displayName || email.split("@")[0],
@@ -188,7 +164,6 @@ function AuthPage() {
             email,
             password,
             options: {
-              captchaToken: captchaToken,
               data: {
                 signup_role: "technician",
                 display_name: displayName || email.split("@")[0],
@@ -411,8 +386,6 @@ function AuthPage() {
                 />
               </Field>
 
-              {mode === "signup" && showCaptcha && <CaptchaBox onSuccess={handleCaptchaSuccess} />}
-
               <button
                 type="submit"
                 disabled={loading}
@@ -438,7 +411,6 @@ function AuthPage() {
               onClick={() => {
                 setMode(mode === "signin" ? "signup" : "signin");
                 setSignupRole("citizen");
-                setShowCaptcha(false);
               }}
               className="font-medium text-accent hover:underline"
               data-cursor="link"
