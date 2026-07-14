@@ -16,6 +16,7 @@ import { OfflineProvider } from "../components/providers/OfflineProvider";
 import { AuthProvider } from "../components/providers/AuthProvider";
 import { usePWA } from "../hooks/use-pwa";
 import { Toaster } from "sonner";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 
 function NotFoundComponent() {
   return (
@@ -208,6 +209,7 @@ function RootComponent() {
             <Outlet />
           </main>
           <Toaster position="top-center" theme="light" richColors closeButton />
+          <SpeedInsights />
         </OfflineProvider>
       </AuthProvider>
     </QueryClientProvider>
