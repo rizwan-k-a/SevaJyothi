@@ -1,11 +1,22 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { motion, AnimatePresence } from "framer-motion";
-import { useEffect, useState } from "react";
-import { ArrowLeft, Mail, Lock, ShieldCheck, Loader2, User, Phone, MapPin, Wrench, Car } from "lucide-react";
+import { useEffect, useState, useCallback } from "react";
+import {
+  ArrowLeft,
+  Mail,
+  Lock,
+  ShieldCheck,
+  Loader2,
+  User,
+  Phone,
+  MapPin,
+  Wrench,
+  Car,
+} from "lucide-react";
 import { toast } from "sonner";
-import { Turnstile } from '@marsidev/react-turnstile';
 import { supabase } from "@/config/supabase";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { CaptchaBox } from "@/components/auth/CaptchaBox";
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
@@ -19,47 +30,116 @@ export const Route = createFileRoute("/auth")({
 type Mode = "signin" | "signup";
 type SignupRole = "citizen" | "technician";
 
-async function routeForUser(userId: string): Promise<"/admin" | "/technician" | "/citizen" | "pending"> {
-  const { data } = await supabase.from("user_roles").select("role").eq("user_id", userId);
-  const roles = (data ?? []).map((r) => r.role as string);
-  if (roles.includes("authority")) return "/admin";
-  if (roles.includes("technician")) return "/technician";
-  if (roles.includes("citizen")) return "/citizen";
-  return "pending";
+async function fetchUserRoute(
+  userId: string,
+): Promise<"/admin" | "/technician" | "/citizen" | "pending"> {
+  try {
+    const { data, error } = await supabase.from("user_roles").select("role").eq("user_id", userId);
+    if (error) return "pending";
+    const roles = (data ?? []).map((r) => r.role as string);
+    if (roles.includes("authority")) return "/admin";
+    if (roles.includes("technician")) return "/technician";
+    if (roles.includes("citizen")) return "/citizen";
+    return "pending";
+  } catch {
+    return "pending";
+  }
 }
 
 function AuthPage() {
   const navigate = useNavigate();
-  const { user, loading: authLoading } = useAuth();
-  
+  const { user, roles, loading: authLoading } = useAuth();
+
   const [mode, setMode] = useState<Mode>("signin");
   const [signupRole, setSignupRole] = useState<SignupRole>("citizen");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
-  
+
   const [phone, setPhone] = useState("");
   const [region, setRegion] = useState("");
   const [technicalSkill, setTechnicalSkill] = useState("");
   const [vehicleAvailable, setVehicleAvailable] = useState(false);
   const [captchaToken, setCaptchaToken] = useState("");
-  
+
   const [loading, setLoading] = useState(false);
+  const [showCaptcha, setShowCaptcha] = useState(false);
+
+  // Phase 3: Debounce captcha rendering
+  useEffect(() => {
+    if (mode === "signin") return;
+    const timer = setTimeout(() => {
+      if (email.length > 3 && password.length >= 6) {
+        setShowCaptcha(true);
+      }
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [email, password, mode]);
+
+  // Phase 1: Memoized handlers
+  const handleCaptchaSuccess = useCallback((token: string) => {
+    setCaptchaToken(token);
+  }, []);
+
+  const handleEmailChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value),
+    [],
+  );
+  const handlePasswordChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value),
+    [],
+  );
+  const handleDisplayNameChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => setDisplayName(e.target.value),
+    [],
+  );
+  const handlePhoneChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => setPhone(e.target.value),
+    [],
+  );
+  const handleRegionChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => setRegion(e.target.value),
+    [],
+  );
+  const handleTechnicalSkillChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => setTechnicalSkill(e.target.value),
+    [],
+  );
+  const handleVehicleAvailableChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => setVehicleAvailable(e.target.checked),
+    [],
+  );
 
   useEffect(() => {
     if (!authLoading && user) {
-      routeForUser(user.id).then(async (to) => {
-        if (to === "pending") {
-          await supabase.auth.signOut();
-        } else {
-          navigate({ to });
-        }
-      });
+      if (roles.includes("authority")) navigate({ to: "/admin" });
+      else if (roles.includes("technician")) navigate({ to: "/technician" });
+      else if (roles.includes("citizen")) navigate({ to: "/citizen" });
+      // If roles is empty, it could be a pending technician OR an offline load where cache was empty.
+      // We do not forcefully sign them out here to preserve offline state.
     }
-  }, [user, authLoading, navigate]);
+  }, [user, roles, authLoading, navigate]);
 
   const finishSignIn = async (uid: string) => {
-    const to = await routeForUser(uid);
+    // We already know they logged in, let's verify if they are a pending technician
+    // Since roles are managed by the AuthProvider, we should await a refresh to ensure it's up to date.
+    // However, if they have no roles, they might be a pending technician (or brand new citizen).
+    
+    // Instead of relying on the cached roles (which might be empty on first load), 
+    // fetch the technician application directly to check if they are pending.
+    const { data: techApp } = await supabase.from('technician_applications').select('status').eq('user_id', uid).maybeSingle();
+
+    if (techApp && techApp.status === 'pending') {
+      toast.info("Your technician application is awaiting administrator approval.");
+      await supabase.auth.signOut();
+      return;
+    } else if (techApp && techApp.status === 'rejected') {
+      toast.error("Your technician application has been rejected. Please contact the administrator.");
+      await supabase.auth.signOut();
+      return;
+    }
+
+    const to = await fetchUserRoute(uid);
     if (to === "pending") {
       toast.info("Your technician access request is pending administrator approval.");
       await supabase.auth.signOut();
@@ -82,46 +162,50 @@ function AuthPage() {
     try {
       if (mode === "signup") {
         if (signupRole === "citizen") {
-          const { data: signupData, error: invokeErr } = await supabase.functions.invoke('signup', {
-            body: {
-              type: 'citizen',
-              email,
-              password,
-              display_name: displayName || email.split("@")[0],
-              phone,
-              region,
-              captcha_token: captchaToken,
-            }
+          const { data, error } = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+              captchaToken: captchaToken,
+              data: {
+                signup_role: "citizen",
+                display_name: displayName || email.split("@")[0],
+                phone: phone || undefined,
+                region: region || undefined,
+              },
+            },
           });
-          if (invokeErr) throw invokeErr;
-          if (signupData?.error) throw new Error(signupData.error);
-          
-          toast.success("Account created", { description: "Signing you in..." });
-          
-          // Now standard login will succeed since the account was created server-side
-          const { data, error } = await supabase.auth.signInWithPassword({ email, password });
           if (error) throw error;
-          if (data.user) await finishSignIn(data.user.id);
 
+          toast.success("Account created", { description: "Signing you in..." });
+
+          if (data.user) {
+            await finishSignIn(data.user.id);
+          }
         } else {
-          const { data: signupData, error: invokeErr } = await supabase.functions.invoke('signup', {
-            body: {
-              type: 'technician',
-              email,
-              password,
-              display_name: displayName || email.split("@")[0],
-              phone,
-              region,
-              technical_skill: technicalSkill,
-              vehicle_available: vehicleAvailable,
-              captcha_token: captchaToken,
-            }
+          // Technician signup
+          const { data, error } = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+              captchaToken: captchaToken,
+              data: {
+                signup_role: "technician",
+                display_name: displayName || email.split("@")[0],
+                phone: phone || undefined,
+                region: region || undefined,
+                technical_skill: technicalSkill || undefined,
+                vehicle_available: vehicleAvailable,
+              },
+            },
           });
-          if (invokeErr) throw invokeErr;
-          if (signupData?.error) throw new Error(signupData.error);
-          
-          toast.success("Application submitted", { description: "Your technician request is pending admin approval." });
-          // Note: technician signup doesn't log them in automatically because they are pending approval.
+          if (error) throw error;
+
+          toast.success("Application submitted", {
+            description: "Your technician request is pending admin approval.",
+          });
+          // Technician signup immediately signs them out because they are pending approval
+          await supabase.auth.signOut();
         }
       } else {
         const { data, error } = await supabase.auth.signInWithPassword({ email, password });
@@ -133,7 +217,8 @@ function AuthPage() {
     } catch (err: any) {
       const msg = err?.message ?? "Couldn't authenticate.";
       if (/invalid login/i.test(msg)) toast.error("Wrong email or password");
-      else if (/already registered/i.test(msg)) toast.error("Email already registered — sign in instead");
+      else if (/already registered/i.test(msg))
+        toast.error("Email already registered — sign in instead");
       else toast.error(msg);
     } finally {
       setLoading(false);
@@ -143,13 +228,27 @@ function AuthPage() {
   return (
     <div className="relative min-h-[100svh] overflow-x-hidden overflow-y-auto">
       <div aria-hidden className="pointer-events-none absolute inset-0">
-        <div className="absolute -left-20 top-20 h-[500px] w-[500px] rounded-full opacity-60 blur-3xl"
-          style={{ background: "radial-gradient(closest-side, oklch(0.58 0.21 264 / 0.4), transparent 70%)" }} />
-        <div className="absolute -right-32 bottom-0 h-[600px] w-[600px] rounded-full opacity-50 blur-3xl"
-          style={{ background: "radial-gradient(closest-side, oklch(0.78 0.10 200 / 0.5), transparent 70%)" }} />
+        <div
+          className="absolute -left-20 top-20 h-[500px] w-[500px] rounded-full opacity-60 blur-3xl"
+          style={{
+            background:
+              "radial-gradient(closest-side, oklch(0.58 0.21 264 / 0.4), transparent 70%)",
+          }}
+        />
+        <div
+          className="absolute -right-32 bottom-0 h-[600px] w-[600px] rounded-full opacity-50 blur-3xl"
+          style={{
+            background:
+              "radial-gradient(closest-side, oklch(0.78 0.10 200 / 0.5), transparent 70%)",
+          }}
+        />
       </div>
 
-      <Link to="/" className="absolute left-6 top-6 z-10 inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[13px] text-muted-foreground hover:text-foreground" data-cursor="link">
+      <Link
+        to="/"
+        className="absolute left-6 top-6 z-10 inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[13px] text-muted-foreground hover:text-foreground"
+        data-cursor="link"
+      >
         <ArrowLeft className="h-4 w-4" /> Back
       </Link>
 
@@ -166,7 +265,9 @@ function AuthPage() {
           <h1 className="text-display text-4xl">
             {mode === "signin" ? "Welcome back" : "Join "}
             {mode === "signup" && (
-              <span className="text-accent-script text-accent text-[1.4em] leading-[0.6]">SevaJyothi</span>
+              <span className="text-accent-script text-accent text-[1.4em] leading-[0.6]">
+                SevaJyothi
+              </span>
             )}
           </h1>
           <p className="mt-2 text-[14px] text-muted-foreground">
@@ -193,8 +294,8 @@ function AuthPage() {
                     type="button"
                     onClick={() => setSignupRole("citizen")}
                     className={`flex-1 rounded-xl py-2 text-sm font-medium transition-colors ${
-                      signupRole === "citizen" 
-                        ? "bg-emerald-500 text-white shadow-sm" 
+                      signupRole === "citizen"
+                        ? "bg-emerald-500 text-white shadow-sm"
                         : "text-muted-foreground hover:text-foreground"
                     }`}
                   >
@@ -204,8 +305,8 @@ function AuthPage() {
                     type="button"
                     onClick={() => setSignupRole("technician")}
                     className={`flex-1 rounded-xl py-2 text-sm font-medium transition-colors ${
-                      signupRole === "technician" 
-                        ? "bg-orange-500 text-white shadow-sm" 
+                      signupRole === "technician"
+                        ? "bg-orange-500 text-white shadow-sm"
                         : "text-muted-foreground hover:text-foreground"
                     }`}
                   >
@@ -216,7 +317,8 @@ function AuthPage() {
 
               {mode === "signup" && signupRole === "technician" && (
                 <div className="mb-4 rounded-xl border border-orange-500/30 bg-orange-500/10 p-3 text-xs text-orange-600 dark:text-orange-400">
-                  <strong>Approval Required:</strong> Technician accounts require manual review and approval by a district administrator before access is granted.
+                  <strong>Approval Required:</strong> Technician accounts require manual review and
+                  approval by a district administrator before access is granted.
                 </div>
               )}
 
@@ -225,7 +327,7 @@ function AuthPage() {
                   <input
                     value={displayName}
                     required
-                    onChange={(e) => setDisplayName(e.target.value)}
+                    onChange={handleDisplayNameChange}
                     placeholder="Your name"
                     className="w-full bg-transparent py-3 px-1 text-[15px] outline-none"
                   />
@@ -237,7 +339,7 @@ function AuthPage() {
                   autoComplete="email"
                   required
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={handleEmailChange}
                   placeholder="you@village.in"
                   className="w-full bg-transparent py-3 px-1 text-[15px] outline-none"
                 />
@@ -245,40 +347,51 @@ function AuthPage() {
 
               {mode === "signup" && signupRole === "technician" && (
                 <>
-                  <Field label="Phone Number" icon={<Phone className="h-4 w-4 text-muted-foreground" />}>
+                  <Field
+                    label="Phone Number"
+                    icon={<Phone className="h-4 w-4 text-muted-foreground" />}
+                  >
                     <input
                       required
                       value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
+                      onChange={handlePhoneChange}
                       placeholder="+91 90000 00000"
                       className="w-full bg-transparent py-3 px-1 text-[15px] outline-none"
                     />
                   </Field>
-                  <Field label="Service Region" icon={<MapPin className="h-4 w-4 text-muted-foreground" />}>
+                  <Field
+                    label="Service Region"
+                    icon={<MapPin className="h-4 w-4 text-muted-foreground" />}
+                  >
                     <input
                       required
                       value={region}
-                      onChange={(e) => setRegion(e.target.value)}
+                      onChange={handleRegionChange}
                       placeholder="District or Zone"
                       className="w-full bg-transparent py-3 px-1 text-[15px] outline-none"
                     />
                   </Field>
-                  <Field label="Technical Skill" icon={<Wrench className="h-4 w-4 text-muted-foreground" />}>
+                  <Field
+                    label="Technical Skill"
+                    icon={<Wrench className="h-4 w-4 text-muted-foreground" />}
+                  >
                     <input
                       required
                       value={technicalSkill}
-                      onChange={(e) => setTechnicalSkill(e.target.value)}
+                      onChange={handleTechnicalSkillChange}
                       placeholder="e.g. Electrical, Plumbing"
                       className="w-full bg-transparent py-3 px-1 text-[15px] outline-none"
                     />
                   </Field>
                   <label className="flex items-center gap-3 rounded-2xl border border-input bg-white/70 px-4 py-3 cursor-pointer">
                     <Car className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-[13px] font-medium text-foreground flex-1">Vehicle Available</span>
-                    <input 
-                      type="checkbox" 
+                    <span className="text-[13px] font-medium text-foreground flex-1">
+                      Vehicle Available
+                    </span>
+                    <input
+                      type="checkbox"
                       checked={vehicleAvailable}
-                      onChange={(e) => setVehicleAvailable(e.target.checked)}
+                      onChange={handleVehicleAvailableChange}
                       className="h-4 w-4 rounded border-gray-300 text-accent focus:ring-accent"
                     />
                   </label>
@@ -292,20 +405,13 @@ function AuthPage() {
                   required
                   minLength={6}
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={handlePasswordChange}
                   placeholder="••••••••"
                   className="w-full bg-transparent py-3 px-1 text-[15px] outline-none"
                 />
               </Field>
 
-              {mode === "signup" && (
-                <div className="flex justify-center py-2">
-                  <Turnstile 
-                    siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY || '1x00000000000000000000AA'} 
-                    onSuccess={(token) => setCaptchaToken(token)}
-                  />
-                </div>
-              )}
+              {mode === "signup" && showCaptcha && <CaptchaBox onSuccess={handleCaptchaSuccess} />}
 
               <button
                 type="submit"
@@ -316,7 +422,11 @@ function AuthPage() {
                 }`}
               >
                 {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-                {mode === "signin" ? "Sign in" : signupRole === "technician" ? "Submit Application" : "Create account"}
+                {mode === "signin"
+                  ? "Sign in"
+                  : signupRole === "technician"
+                    ? "Submit Application"
+                    : "Create account"}
               </button>
             </motion.form>
           </AnimatePresence>
@@ -328,6 +438,7 @@ function AuthPage() {
               onClick={() => {
                 setMode(mode === "signin" ? "signup" : "signin");
                 setSignupRole("citizen");
+                setShowCaptcha(false);
               }}
               className="font-medium text-accent hover:underline"
               data-cursor="link"
@@ -337,7 +448,8 @@ function AuthPage() {
           </div>
 
           <div className="mt-8 border-t border-border/70 pt-5 text-center text-[11.5px] text-muted-foreground">
-            Roles · <span className="text-emerald-500">Citizen</span> · <span className="text-orange-500">Technician</span>
+            Roles · <span className="text-emerald-500">Citizen</span> ·{" "}
+            <span className="text-orange-500">Technician</span>
             <div className="mt-1 text-mono-data uppercase tracking-[0.14em] text-accent">
               Access controlled production system
             </div>
@@ -348,7 +460,15 @@ function AuthPage() {
   );
 }
 
-function Field({ label, icon, children }: { label: string; icon?: React.ReactNode; children: React.ReactNode }) {
+function Field({
+  label,
+  icon,
+  children,
+}: {
+  label: string;
+  icon?: React.ReactNode;
+  children: React.ReactNode;
+}) {
   return (
     <label className="block">
       <span className="text-[12px] font-medium text-muted-foreground">{label}</span>

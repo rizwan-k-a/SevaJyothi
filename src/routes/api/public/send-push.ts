@@ -86,14 +86,14 @@ export const Route = createFileRoute("/api/public/send-push")({
               await webpush.sendNotification(
                 { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
                 payload,
-                { TTL: 60 * 60 * 24 }
+                { TTL: 60 * 60 * 24 },
               );
               delivered++;
             } catch (err: any) {
               const status = err?.statusCode;
               if (status === 404 || status === 410) toPrune.push(s.id);
             }
-          })
+          }),
         );
 
         if (toPrune.length > 0) {

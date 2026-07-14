@@ -28,26 +28,62 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const loadRoles = async (uid: string | undefined | null) => {
-    if (!uid) { setRoles([]); return; }
-    const { data } = await supabase.from("user_roles").select("role").eq("user_id", uid);
-    setRoles((data ?? []).map((r) => r.role as AppRole));
+    if (!uid) {
+      setRoles([]);
+      localStorage.removeItem("sj-roles");
+      return;
+    }
+    try {
+      const { data, error } = await supabase.from("user_roles").select("role").eq("user_id", uid);
+      if (error) {
+        // If it's a network error, keep using the cached roles.
+        // Don't overwrite state with [] on transient failure.
+        console.warn("Failed to fetch roles, using cache if available.", error);
+        return;
+      }
+      const fetchedRoles = (data ?? []).map((r) => r.role as AppRole);
+      setRoles(fetchedRoles);
+      localStorage.setItem("sj-roles", JSON.stringify(fetchedRoles));
+    } catch (err) {
+      console.warn("Role fetch failed:", err);
+    }
   };
 
   useEffect(() => {
+    // Attempt to hydrate from cache immediately
+    try {
+      const cached = localStorage.getItem("sj-roles");
+      if (cached) setRoles(JSON.parse(cached));
+    } catch {
+      // ignore
+    }
+
     // CRITICAL: synchronous listener first, then a one-shot getSession.
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
       setSession(s);
       setUser(s?.user ?? null);
-      // Defer DB lookups to avoid deadlocking the callback.
-      if (s?.user) setTimeout(() => loadRoles(s.user!.id), 0);
-      else setRoles([]);
+
+      if (event === "SIGNED_OUT") {
+        setRoles([]);
+        localStorage.removeItem("sj-roles");
+      } else if (s?.user) {
+        // Defer DB lookups to avoid deadlocking the callback.
+        setTimeout(() => loadRoles(s.user!.id), 0);
+      } else {
+        setRoles([]);
+      }
     });
 
     supabase.auth.getSession().then(({ data: { session: s } }) => {
       setSession(s);
       setUser(s?.user ?? null);
-      if (s?.user) loadRoles(s.user.id).finally(() => setLoading(false));
-      else setLoading(false);
+      if (s?.user) {
+        // We rely on onAuthStateChange INITIAL_SESSION for role loading
+        // to avoid duplicate requests, but we ensure loading is set to false.
+        setLoading(false);
+      } else {
+        setLoading(false);
+      }
     });
 
     return () => sub.subscription.unsubscribe();
@@ -60,8 +96,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         session,
         roles,
         loading,
-        signOut: async () => { await supabase.auth.signOut(); },
-        refreshRoles: async () => { await loadRoles(user?.id); },
+        signOut: async () => {
+          localStorage.removeItem("sj-roles");
+          await supabase.auth.signOut();
+        },
+        refreshRoles: async () => {
+          await loadRoles(user?.id);
+        },
       }}
     >
       {children}
